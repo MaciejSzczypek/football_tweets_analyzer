@@ -1,8 +1,8 @@
 from gensim.models import Word2Vec
 
-from data.data_loaders import DataLoader
-from data.data_schemas import LIV_WAT_TEXT_COLUMN_NAME
-from data.path_constants import (
+from data.loaders import DataLoader
+from data.schemas import LIV_WAT_TEXT_COLUMN_NAME
+from data.paths import (
     FINAL_LIVERPOOL_VS_WATFORD_WITH_RETWEETS_EXCLUDED_FILE_PATH,
 )
 

@@ -1,5 +1,5 @@
-from data.data_filters import TweetsFilterer
-from data.data_loaders import DataLoader
+from data.filters import TweetsFilterer
+from data.loaders import DataLoader
 
 from common import (
     RELATIVE_LANGUAGE_FILTERED_TWEETS_LIVERPOOL_VS_WATFORD_FILE_PATH,

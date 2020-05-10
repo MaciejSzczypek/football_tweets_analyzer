@@ -1,5 +1,5 @@
 from string import Template
-from data.path_constants import (
+from data.paths import (
     ORIGINAL_LIVERPOOL_VS_WATFORD_FILE_PATH,
     LIVERPOOL_VS_WATFORD_WITH_NON_ENGLISH_TWEETS_EXCLUDED_FILE_PATH,
     FINAL_LIVERPOOL_VS_WATFORD_WITH_RETWEETS_EXCLUDED_FILE_PATH,
