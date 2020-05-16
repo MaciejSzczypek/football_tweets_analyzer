@@ -1,0 +1,28 @@
+setting_1:
+  corpus:
+    text_normalization:
+      operations:
+        remove_stopwords: true
+        apply_stemming: false
+        apply_lemmatization: false
+        expand_contractions: false
+        remove_special_characters: false
+        remove_emoticons: false
+      custom_data:
+        stopwords: null
+setting_2:
+  corpus:
+    text_normalization:
+      operations:
+        remove_stopwords: true
+        apply_stemming: false
+        apply_lemmatization: false
+        expand_contractions: false
+        remove_special_characters: false
+        remove_emoticons: false
+      custom_data:
+        stopwords:
+          - and
+          - an
+          - a
+          - the

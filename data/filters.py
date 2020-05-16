@@ -1,7 +1,8 @@
+import emoji
 import pandas as pd
 from langdetect import detect, lang_detect_exception
-import emoji
-from data.schemas import LIV_WAT_TEXT_COLUMN_NAME
+
+from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
 
 
 class TweetsFilterer:

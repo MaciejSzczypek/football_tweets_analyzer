@@ -1,12 +1,12 @@
 import re
 
 
-class TweetCleaner:
+class TweetTextExtractor:
     MENTIONED_USER_REGEX = r"@\w+ "
     TWEET_LINK_REGEX = r"https://t.co/\w+$"
 
     @classmethod
-    def clean_text_from_tweet(cls, text: str) -> str:
+    def extract_text_from_tweet(cls, text: str) -> str:
         text = cls._remove_mentioned_users(text)
         text = cls._remove_reference_to_another_tweet(text)
         return text

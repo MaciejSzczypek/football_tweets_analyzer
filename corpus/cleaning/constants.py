@@ -1,0 +1,4 @@
+BASIC_STOPWORDS = {"and", "a", "an", "the"}
+SPECIAL_CHARACTERS = set()
+EMOTICONS = set()
+CONTRACTION_EXTENSIONS = {}

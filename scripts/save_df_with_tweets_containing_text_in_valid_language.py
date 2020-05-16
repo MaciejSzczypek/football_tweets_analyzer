@@ -1,8 +1,7 @@
 from common import (
-    RELATIVE_ORIGINAL_LIVERPOOL_VS_WATFORD_FILE_PATH,
     RELATIVE_LANGUAGE_FILTERED_TWEETS_LIVERPOOL_VS_WATFORD_FILE_PATH,
+    RELATIVE_ORIGINAL_LIVERPOOL_VS_WATFORD_FILE_PATH,
 )
-
 from data.filters import TweetsFilterer
 from data.loaders import DataLoader
 
