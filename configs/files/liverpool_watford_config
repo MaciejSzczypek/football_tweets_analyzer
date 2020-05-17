@@ -1,28 +1,32 @@
 setting_1:
   corpus:
-    text_normalization:
+    normalization:
       operations:
         remove_stopwords: true
         apply_stemming: false
         apply_lemmatization: false
-        expand_contractions: false
+        expand_contractions: true
         remove_special_characters: false
-        remove_emoticons: false
+        remove_emoticons: true
       custom_data:
         stopwords: null
-setting_2:
-  corpus:
-    text_normalization:
-      operations:
-        remove_stopwords: true
-        apply_stemming: false
-        apply_lemmatization: false
-        expand_contractions: false
-        remove_special_characters: false
-        remove_emoticons: false
-      custom_data:
-        stopwords:
-          - and
-          - an
-          - a
-          - the
+    tokenization:
+      sentence_tokenizer: default_sentence_tokenizer
+      word_tokenizer: basic_split_by_whitespace_tokenizer
+
+#setting_2:
+#  corpus:
+#    text_normalization:
+#      operations:
+#        remove_stopwords: true
+#        apply_stemming: false
+#        apply_lemmatization: false
+#        expand_contractions: false
+#        remove_special_characters: false
+#        remove_emoticons: false
+#      custom_data:
+#        stopwords:
+#          - and
+#          - an
+#          - a
+#          - the

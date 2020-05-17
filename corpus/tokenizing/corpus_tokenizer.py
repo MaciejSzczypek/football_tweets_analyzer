@@ -1,8 +1,6 @@
-from typing import Callable, List, Optional
+from typing import Callable, List
 
 from nptyping import Array
-
-from corpus.tokenizing.tokenizer import Tokenizer
 
 
 class CorpusTokenizer:
@@ -10,8 +8,8 @@ class CorpusTokenizer:
     def tokenize(
         cls,
         corpus: Array[str],
-        sentence_tokenizer: Optional[Callable] = Tokenizer.default_sentence_tokenizer,
-        word_tokenizer: Callable = Tokenizer.default_word_tokenizer,
+        sentence_tokenizer: Callable,
+        word_tokenizer: Callable,
     ) -> List[List[str]]:
         tokenized_corpus = [
             cls._tokenize_with_both_sentence_and_word_tokenizer(

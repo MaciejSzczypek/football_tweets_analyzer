@@ -2,7 +2,8 @@ from typing import List
 
 import numpy as np
 from nptyping import Array
-from configs.config_schema import Config
+
+from configs.config_schema import HyperParametersConfig
 from corpus.cleaning.corpus_normalizer import TokenizedCorpusNormalizer
 from corpus.cleaning.tweet_text_extractor import TweetTextExtractor
 from corpus.tokenizing.corpus_tokenizer import CorpusTokenizer
@@ -11,18 +12,29 @@ from corpus.tokenizing.corpus_tokenizer import CorpusTokenizer
 class CorpusTransformationPipeline:
     @classmethod
     def transform_twitter_corpus(
-        cls, corpus: Array[str], config: Config,
+        cls, corpus: Array[str], hyper_parameters_config: HyperParametersConfig,
     ) -> List[List[str]]:
         vectorized_tweet_text_extractor = np.vectorize(
             TweetTextExtractor.extract_text_from_tweet
         )
         extracted_tweets = vectorized_tweet_text_extractor(corpus)
 
-        tokenized_tweets = CorpusTokenizer.tokenize(extracted_tweets)
+        tokenized_tweets = CorpusTokenizer.tokenize(
+            corpus=extracted_tweets,
+            word_tokenizer=hyper_parameters_config.corpus.tokenization.word_tokenizer,
+            sentence_tokenizer=hyper_parameters_config.corpus.tokenization.sentence_tokenizer,
+        )
 
         tokenized_corpus_normalizer = TokenizedCorpusNormalizer()
+
+        normalization_operations_config = hyper_parameters_config.corpus.normalization.operations
         tokenized_and_normalized_tweets = tokenized_corpus_normalizer.normalize(
             tokenized_corpus=tokenized_tweets,
-            remove_stopwords=config.settings[0].corpus.text_normalization.operations.remove_stopwords,
+            remove_stopwords=normalization_operations_config.remove_stopwords,
+            expand_contractions=normalization_operations_config.expand_contractions,
+            remove_emoticons=normalization_operations_config.remove_emoticons,
         )
+        tokenized_and_normalized_tweets = [
+            tweet for tweet in tokenized_and_normalized_tweets if tweet
+        ]
         return tokenized_and_normalized_tweets
