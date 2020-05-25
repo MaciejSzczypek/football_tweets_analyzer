@@ -9,7 +9,7 @@ from corpus.cleaning.tweet_text_extractor import TweetTextExtractor
 from corpus.tokenizing.corpus_tokenizer import CorpusTokenizer
 
 
-class CorpusTransformationPipeline:
+class CorpusTransformer:
     @classmethod
     def transform_twitter_corpus(
         cls, corpus: Array[str], hyper_parameters_config: HyperParametersConfig,
@@ -30,11 +30,13 @@ class CorpusTransformationPipeline:
         normalization_operations_config = hyper_parameters_config.corpus.normalization.operations
         tokenized_and_normalized_tweets = tokenized_corpus_normalizer.normalize(
             tokenized_corpus=tokenized_tweets,
-            remove_stopwords=normalization_operations_config.remove_stopwords,
-            expand_contractions=normalization_operations_config.expand_contractions,
-            remove_emoticons=normalization_operations_config.remove_emoticons,
+            normalization_operations_config=normalization_operations_config,
         )
+
         tokenized_and_normalized_tweets = [
             tweet for tweet in tokenized_and_normalized_tweets if tweet
         ]
+        # tokenized_and_normalized_tweets = [
+        #     " ".join(tweet) for tweet in tokenized_and_normalized_tweets if tweet
+        # ]     # for tfidf_vectorizer
         return tokenized_and_normalized_tweets

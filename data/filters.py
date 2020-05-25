@@ -8,7 +8,7 @@ from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
 class TweetsFilterer:
     ENGLISH_LANGUAGE_LABEL = "en"
     RETWEET_INDICATOR = "RT @"
-    RETWEET_INDICATOR_POSITIONS = slice(0, 4)
+    RETWEET_INDICATOR_POSITIONS = slice(0, 5)
 
     @classmethod
     def filter_out_tweets_with_invalid_language_text(
@@ -43,7 +43,7 @@ class TweetsFilterer:
     @classmethod
     def _tweet_is_a_retweet(cls, tweet: pd.Series) -> bool:
         text = cls._get_text_from_tweet(tweet)
-        return text[cls.RETWEET_INDICATOR_POSITIONS] == cls.RETWEET_INDICATOR
+        return cls.RETWEET_INDICATOR in text[cls.RETWEET_INDICATOR_POSITIONS]
 
     @classmethod
     def _get_text_from_tweet(cls, tweet: pd.Series) -> str:

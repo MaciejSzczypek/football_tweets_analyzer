@@ -10,12 +10,18 @@ class CustomDataForTextNormalizationConfig:
 
 @dataclass
 class OperationsForTextNormalizationConfig:
+    lower: bool
+    remove_commas: bool
     remove_stopwords: bool
     apply_stemming: bool
     apply_lemmatization: bool
     expand_contractions: bool
     remove_special_characters: bool
     remove_emoticons: bool
+    remove_hashtags: bool
+    remove_links: bool
+    remove_user_mentions: bool
+    remove_noisy_documents: bool
 
 
 @dataclass

@@ -1,6 +1,11 @@
 BASIC_STOPWORDS = {"and", "a", "an", "the"}
-SPECIAL_CHARACTERS = set()
-EMOTICONS = set()
+SPECIAL_CHARACTERS = {
+    '~', ':', "'", '+', '[', '\\', '@', '^', '{', '%', '(', '-', '"', '*', '|', ',', '&',
+    '<', '`', '}', '.', '_', '=', ']', '!', '>', ';', '?', '#', '$', ')', '/'
+}
+TWITTER_SPECIFIC_SPECIAL_CHARACTERS = {"#", "@"}
+FOOTBALL_RESULT_FORMAT_REGEX = r" *[0-9] ?[-:] ?[0-9] *"
+NORMALIZED_FOOTBALL_RESULT_FORMAT_REGEX = r"[0-9]-[0-9]"
 CONTRACTION_EXTENSIONS = {
     "ain't": "not",
     "aint": "not",

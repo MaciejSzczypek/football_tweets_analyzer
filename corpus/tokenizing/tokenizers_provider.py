@@ -1,7 +1,7 @@
 import logging
 from string import Template
 from typing import Callable
-from corpus.tokenizing.custom_tokenizers import BasicSplitByWhitespaceTokenizer
+from corpus.tokenizing.custom_tokenizers import CustomTokenizer
 import nltk
 
 
@@ -14,13 +14,13 @@ class TokenizersProvider:
     DEFAULT_WORD_TOKENIZER_NAME = "default_word_tokenizer"
     TREEBANK_WORD_TOKENIZER_NAME = "treebank_word_tokenizer"
     TOK_TOK_WORD_TOKENIZER = "tok_tok_tokenizer"
-    BASIC_SPLIT_BY_WHITESPACE_TOKENIZER_NAME = "basic_split_by_whitespace_tokenizer"
+    CUSTOM_TOKENIZER_NAME = "custom_tokenizer"
     TOKENIZERS = {
         DEFAULT_SENTENCE_TOKENIZER_NAME: nltk.sent_tokenize,
         DEFAULT_WORD_TOKENIZER_NAME: nltk.word_tokenize,
         TREEBANK_WORD_TOKENIZER_NAME: nltk.TreebankWordTokenizer().tokenize,
         TOK_TOK_WORD_TOKENIZER: nltk.ToktokTokenizer().tokenize,
-        BASIC_SPLIT_BY_WHITESPACE_TOKENIZER_NAME: BasicSplitByWhitespaceTokenizer.tokenize
+        CUSTOM_TOKENIZER_NAME: CustomTokenizer.tokenize
     }
 
     @classmethod
