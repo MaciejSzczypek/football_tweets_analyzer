@@ -20,7 +20,7 @@ class TokenizersProvider:
         DEFAULT_WORD_TOKENIZER_NAME: nltk.word_tokenize,
         TREEBANK_WORD_TOKENIZER_NAME: nltk.TreebankWordTokenizer().tokenize,
         TOK_TOK_WORD_TOKENIZER: nltk.ToktokTokenizer().tokenize,
-        CUSTOM_TOKENIZER_NAME: CustomTokenizer.tokenize
+        CUSTOM_TOKENIZER_NAME: CustomTokenizer.tokenize,
     }
 
     @classmethod
@@ -41,6 +41,8 @@ class TokenizersProvider:
             return cls.TOKENIZERS.get(name)
         else:
             logging.warning(
-                cls.NO_SUCH_KEY_IN_TOKENIZERS_DICTIONARY_INFO_TEMPLATE.substitute(name=name)
+                cls.NO_SUCH_KEY_IN_TOKENIZERS_DICTIONARY_INFO_TEMPLATE.substitute(
+                    name=name
+                )
             )
             return cls.TOKENIZERS.get(default_tokenizer_name)

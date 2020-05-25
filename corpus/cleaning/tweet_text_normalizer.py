@@ -11,7 +11,6 @@ import re
 
 
 class TweetTextNormalizer:
-
     def __init__(self, stopwords: Optional[Set[str]]):
         self._stopwords = stopwords if stopwords else BASIC_STOPWORDS
 
@@ -62,7 +61,9 @@ class TweetTextNormalizer:
                 normalized_and_tokenized_text.extend(words)
             else:
                 normalized_and_tokenized_text.append(word)
-        normalized_and_tokenized_text = [token for token in normalized_and_tokenized_text if token]
+        normalized_and_tokenized_text = [
+            token for token in normalized_and_tokenized_text if token
+        ]
         # unrecognizable_words = 0
         # english_dict = enchant.Dict("en_GB")
         # for token in normalized_and_tokenized_text:
@@ -79,17 +80,13 @@ class TweetTextNormalizer:
 
     @classmethod
     def _remove_emoticons(cls, token: str) -> str:
-        return token.encode('ascii', 'ignore').decode('ascii')
+        return token.encode("ascii", "ignore").decode("ascii")
 
     @classmethod
     def _remove_special_characters(cls, token: str) -> str:
         if re.match(NORMALIZED_FOOTBALL_RESULT_FORMAT_REGEX, token):
             return token
-        return re.sub(
-            f"[^a-zA-Z0-9{TWITTER_SPECIFIC_SPECIAL_CHARACTERS}]+",
-            "",
-            token
-        )
+        return re.sub(f"[^a-zA-Z0-9{TWITTER_SPECIFIC_SPECIAL_CHARACTERS}]+", "", token)
 
     @classmethod
     def _remove_links(cls, token: str) -> str:
@@ -100,11 +97,11 @@ class TweetTextNormalizer:
 
     @classmethod
     def _remove_hashtags(cls, token: str) -> str:
-        return re.sub(r'^#.*$', '', token)
+        return re.sub(r"^#.*$", "", token)
 
     @classmethod
     def _remove_user_mentions(cls, token: str) -> str:
-        return re.sub(r'^@.*$', '', token)
+        return re.sub(r"^@.*$", "", token)
 
     @classmethod
     def _stem(cls, token: str) -> str:

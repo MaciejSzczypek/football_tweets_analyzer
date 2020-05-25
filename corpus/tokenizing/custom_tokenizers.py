@@ -3,30 +3,21 @@ import re
 
 
 class CustomTokenizer:
-
     @classmethod
     def tokenize(cls, text: str):
         text = cls._normalize_football_match_result_if_occurs(text)
         return text.split()
 
     @classmethod
-    def _normalize_football_match_result_if_occurs(
-            cls,
-            text: str
-    ) -> str:
-        match_result_search_outcome = re.search(
-            f"{FOOTBALL_RESULT_FORMAT_REGEX}",
-            text
-        )
+    def _normalize_football_match_result_if_occurs(cls, text: str) -> str:
+        match_result_search_outcome = re.search(f"{FOOTBALL_RESULT_FORMAT_REGEX}", text)
         if match_result_search_outcome:
             match_result = match_result_search_outcome.group(0)
             match_result = match_result.replace(":", "-")
-            match_result = cls._remove_non_leading_and_non_trailing_whitespaces(match_result)
-            text = re.sub(
-                f"{FOOTBALL_RESULT_FORMAT_REGEX}",
-                match_result,
-                text,
+            match_result = cls._remove_non_leading_and_non_trailing_whitespaces(
+                match_result
             )
+            text = re.sub(f"{FOOTBALL_RESULT_FORMAT_REGEX}", match_result, text,)
         return text
 
     @classmethod

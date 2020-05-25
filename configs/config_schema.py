@@ -30,7 +30,7 @@ class TextNormalizationConfig:
     custom_data: CustomDataForTextNormalizationConfig
 
     def __init__(
-            self, operations: Dict[str, Any], custom_data: Dict[str, Any],
+        self, operations: Dict[str, Any], custom_data: Dict[str, Any],
     ):
         self.operations = OperationsForTextNormalizationConfig(**operations)
         self.custom_data = CustomDataForTextNormalizationConfig(**custom_data)
@@ -42,9 +42,11 @@ class TextTokenizationConfig:
     word_tokenizer: Callable
 
     def __init__(
-            self, sentence_tokenizer: str, word_tokenizer: str,
+        self, sentence_tokenizer: str, word_tokenizer: str,
     ):
-        self.sentence_tokenizer = TokenizersProvider.get_sentence_tokenizer(sentence_tokenizer)
+        self.sentence_tokenizer = TokenizersProvider.get_sentence_tokenizer(
+            sentence_tokenizer
+        )
         self.word_tokenizer = TokenizersProvider.get_word_tokenizer(word_tokenizer)
 
 
@@ -53,9 +55,7 @@ class CorpusConfig:
     normalization: TextNormalizationConfig
     tokenization: TextTokenizationConfig
 
-    def __init__(
-            self, normalization: Dict[str, Any], tokenization: Dict[str, Any]
-    ):
+    def __init__(self, normalization: Dict[str, Any], tokenization: Dict[str, Any]):
         self.normalization = TextNormalizationConfig(**normalization)
         self.tokenization = TextTokenizationConfig(**tokenization)
 
@@ -74,7 +74,7 @@ class Config:
 
     @classmethod
     def _create_settings_from_dict(
-            cls, config_dict: Dict[str, Any]
+        cls, config_dict: Dict[str, Any]
     ) -> Dict[str, HyperParametersConfig]:
         return {
             setting_name: HyperParametersConfig(**setting)

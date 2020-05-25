@@ -15,8 +15,7 @@ class TokenizedCorpusNormalizer:
     ):
         return [
             self._text_normalizer.normalize(
-                tokenized_text=document,
-                **normalization_operations_config.__dict__,
+                tokenized_text=document, **normalization_operations_config.__dict__,
             )
             for document in tokenized_corpus
         ]

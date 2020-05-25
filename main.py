@@ -6,12 +6,17 @@ from configs.config_loader import ConfigLoader
 from corpus.feature_extraction.word2vector import get_trained_word_2_vector_model
 from langdetect import detect_langs
 from langdetect.language import Language
+
 # from corpus.feature_extraction.tfidf import create_df_with_tfidf_feature_vectors
 # from corpus.feature_extraction.document_similarity import get_cosine_similarity_df_from_tfidf_matrix
 from corpus.feature_extraction.vectorizers import transform_matrix_with_count_vectorizer
 from clustering.k_means import cluster_data_with_k_means
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from information_extraction.keyphrase_extraction import get_top_ngrams, get_chunks, get_tfidf_weighted_keyphrases
+from information_extraction.keyphrase_extraction import (
+    get_top_ngrams,
+    get_chunks,
+    get_tfidf_weighted_keyphrases,
+)
 
 
 def run_liverpool_watford_processing():
@@ -51,7 +56,6 @@ def run_liverpool_watford_processing():
     #     print(list(map(lambda word: word[0], word_2_vector_model.similar_by_vector(third_cluster_center, topn=20))))
     # except:
     #     pass
-
 
     # ++++ COSINUS SIMILARITY ++++
     # tfidf_df = create_df_with_tfidf_feature_vectors(corpus=normalized_corpus)

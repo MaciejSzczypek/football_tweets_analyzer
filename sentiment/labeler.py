@@ -7,7 +7,6 @@ from sentiment.labels import SentimentLabel
 
 
 class Labeler:
-
     @classmethod
     def label_data_with_vader(cls, df: pd.DataFrame) -> pd.DataFrame:
         analyser = SentimentIntensityAnalyzer()
@@ -23,7 +22,9 @@ class Labeler:
         pass
 
     @classmethod
-    def _label_data(cls, df: pd.DataFrame, sentiment_analyser: Callable) -> pd.DataFrame:
+    def _label_data(
+        cls, df: pd.DataFrame, sentiment_analyser: Callable
+    ) -> pd.DataFrame:
         labeled_df = df[LIV_WAT_TEXT_COLUMN_NAME].apply(sentiment_analyser)
         labeled_df = labeled_df.apply(cls._get_label_from_sentiment_score)
         return labeled_df

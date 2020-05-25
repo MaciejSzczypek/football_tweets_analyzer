@@ -27,7 +27,9 @@ class CorpusTransformer:
 
         tokenized_corpus_normalizer = TokenizedCorpusNormalizer()
 
-        normalization_operations_config = hyper_parameters_config.corpus.normalization.operations
+        normalization_operations_config = (
+            hyper_parameters_config.corpus.normalization.operations
+        )
         tokenized_and_normalized_tweets = tokenized_corpus_normalizer.normalize(
             tokenized_corpus=tokenized_tweets,
             normalization_operations_config=normalization_operations_config,

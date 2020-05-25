@@ -17,7 +17,8 @@ def save_df_with_normalized_tweets():
     )
     tweets = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
     normalized_corpus = CorpusTransformer.transform_twitter_corpus(
-        corpus=tweets, hyper_parameters_config=configs.settings["setting_for_tweet_cleaning"],
+        corpus=tweets,
+        hyper_parameters_config=configs.settings["setting_for_tweet_cleaning"],
     )
     normalized_corpus = [" ".join(tweet_words) for tweet_words in normalized_corpus]
     new_df = pd.DataFrame(normalized_corpus, columns=[LIV_WAT_TEXT_COLUMN_NAME])

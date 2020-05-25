@@ -6,10 +6,7 @@ from nptyping import Array
 class CorpusTokenizer:
     @classmethod
     def tokenize(
-        cls,
-        corpus: Array[str],
-        sentence_tokenizer: Callable,
-        word_tokenizer: Callable,
+        cls, corpus: Array[str], sentence_tokenizer: Callable, word_tokenizer: Callable,
     ) -> List[List[str]]:
         tokenized_corpus = [
             cls._tokenize_with_both_sentence_and_word_tokenizer(
