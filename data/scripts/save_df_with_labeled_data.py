@@ -1,6 +1,5 @@
 from data.loaders import DataLoader
-from scripts.common import (
-    LIVERPOOL_VS_WATFORD_LABELED_RELATIVE_FILE_PATH,
+from data.scripts.common import (
     LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_RELATIVE_FILE_PATH,
 )
 from sentiment.labeler import Labeler

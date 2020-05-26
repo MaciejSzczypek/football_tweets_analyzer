@@ -14,13 +14,13 @@ class CorpusTransformer:
     def transform_twitter_corpus(
         cls, corpus: Array[str], hyper_parameters_config: HyperParametersConfig,
     ) -> List[List[str]]:
-        vectorized_tweet_text_extractor = np.vectorize(
-            TweetTextExtractor.extract_text_from_tweet
-        )
-        extracted_tweets = vectorized_tweet_text_extractor(corpus)
+        # vectorized_tweet_text_extractor = np.vectorize(
+        #     TweetTextExtractor.extract_text_from_tweet
+        # )
+        # extracted_tweets = vectorized_tweet_text_extractor(corpus)
 
         tokenized_tweets = CorpusTokenizer.tokenize(
-            corpus=extracted_tweets,
+            corpus=corpus,
             word_tokenizer=hyper_parameters_config.corpus.tokenization.word_tokenizer,
             sentence_tokenizer=hyper_parameters_config.corpus.tokenization.sentence_tokenizer,
         )

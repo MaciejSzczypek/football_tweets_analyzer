@@ -1,5 +1,7 @@
 import re
 
+# todo probably not needed anymore
+
 
 class TweetTextExtractor:
     MENTIONED_USER_REGEX = r"@\w+ "
