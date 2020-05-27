@@ -4,27 +4,43 @@ from typing import List, Callable
 import pandas as pd
 from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
 from sentiment.labels import SentimentLabel
+from corpus.tokenizing.custom_tokenizers import CustomTokenizer
+from nltk.corpus import sentiwordnet
+from nltk import pos_tag
 
 
 class Labeler:
     @classmethod
-    def label_data_with_vader(cls, df: pd.DataFrame) -> pd.DataFrame:
+    def get_data_labels_with_vader(cls, df: pd.DataFrame) -> pd.Series:
         analyser = SentimentIntensityAnalyzer()
-        labeled_df = cls._label_data(
+        labeled_df = cls._get_data_labels(
             df=df,
             sentiment_analyser=lambda text: analyser.polarity_scores(text)["compound"],
         )
-        print(labeled_df)
-        return df
+        return labeled_df
 
     @classmethod
-    def label_data_with_text_blob(cls, df: pd.DataFrame) -> List[int]:
-        pass
+    def get_data_labels_with_text_blob(cls, df: pd.DataFrame) -> pd.Series:
+        analyser = TextBlob
+        labeled_df = cls._get_data_labels(
+            df=df,
+            sentiment_analyser=lambda text: analyser(text).sentiment.polarity,
+        )
+        return labeled_df
 
     @classmethod
-    def _label_data(
+    def get_data_labels_with_sentiwordnet(cls, df: pd.DataFrame) -> pd.Series:
+        analyser = cls._sentiwordnet_sentiment_analyser
+        labeled_df = cls._get_data_labels(
+            df=df,
+            sentiment_analyser=analyser,
+        )
+        return labeled_df
+
+    @classmethod
+    def _get_data_labels(
         cls, df: pd.DataFrame, sentiment_analyser: Callable
-    ) -> pd.DataFrame:
+    ) -> pd.Series:
         labeled_df = df[LIV_WAT_TEXT_COLUMN_NAME].apply(sentiment_analyser)
         labeled_df = labeled_df.apply(cls._get_label_from_sentiment_score)
         return labeled_df
@@ -37,3 +53,30 @@ class Labeler:
             return SentimentLabel.negative.value
         else:
             return SentimentLabel.neutral.value
+
+    @classmethod
+    def _sentiwordnet_sentiment_analyser(cls, text: str):
+        tokenized_text = CustomTokenizer.tokenize(text)
+        tagged_tokens = pos_tag(tokenized_text)
+        pos_score = 0
+        neg_score = 0
+        token_count = 0
+        obj_score = 0
+        for token, tag in tagged_tokens:
+            ss_set = None
+            if "NN" in tag and list(sentiwordnet.senti_synsets(token, "n")):
+                ss_set = list(sentiwordnet.senti_synsets(token, "n"))[0]
+            elif "VB" in tag and list(sentiwordnet.senti_synsets(token, "v")):
+                ss_set = list(sentiwordnet.senti_synsets(token, "v"))[0]
+            elif "JJ" in tag and list(sentiwordnet.senti_synsets(token, "a")):
+                ss_set = list(sentiwordnet.senti_synsets(token, "a"))[0]
+            elif "RB" in tag and list(sentiwordnet.senti_synsets(token, "r")):
+                ss_set = list(sentiwordnet.senti_synsets(token, "r"))[0]
+            if ss_set:
+                pos_score += ss_set.pos_score()
+                neg_score += ss_set.neg_score()
+                obj_score += ss_set.obj_score()
+                token_count += 1
+        final_score = pos_score - neg_score
+        normalized_final_score = final_score / token_count if token_count else 0
+        return normalized_final_score

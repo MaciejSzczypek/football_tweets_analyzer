@@ -5,10 +5,6 @@ from corpus.corpus_transformation_pipeline import CorpusTransformer
 from configs.config_loader import ConfigLoader
 from information_extraction.keyphrase_extraction import get_top_ngrams
 
-# from feature_extraction.word2vector import get_trained_word_2_vector_model
-# from corpus.feature_extraction.tfidf import create_df_with_tfidf_feature_vectors
-# from corpus.feature_extraction.document_similarity import get_cosine_similarity_df_from_tfidf_matrix
-
 
 def run_liverpool_watford_processing():
     configs = ConfigLoader.load()
@@ -32,7 +28,9 @@ def run_liverpool_watford_processing():
 
     """
     SCRATCHES:
-    
+    from feature_extraction.word2vector import get_trained_word_2_vector_model
+    from corpus.feature_extraction.tfidf import create_df_with_tfidf_feature_vectors
+    from corpus.feature_extraction.document_similarity import get_cosine_similarity_df_from_tfidf_matrix
     
     word_2_vector_model = get_trained_word_2_vector_model(normalized_corpus)
 
