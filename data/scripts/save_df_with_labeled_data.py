@@ -1,3 +1,5 @@
+import pandas as pd
+
 from data.loaders import DataLoader
 from data.scripts.common import (
     LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_RELATIVE_FILE_PATH,
@@ -5,12 +7,11 @@ from data.scripts.common import (
 
 )
 from sentiment.labeler import Labeler
-import pandas as pd
 
 VADER_LABEL_COLUMN_NAME = "VaderLabel"
 VADER_POLARITY_COLUMN_NAME = "VaderPolarity"
 TEXTBLOB_LABEL_COLUMN_NAME = "TextBlobLabel"
-TEXTBLOB_POLARITY_LABEL_COLUMN_NAME = "TextBlobPolarity"
+TEXTBLOB_POLARITY_COLUMN_NAME = "TextBlobPolarity"
 SENTIWORDNET_LABEL_COLUMN_NAME = "SentiWordNetLabel"
 SENTIWORDNET_POLARITY_COLUMN_NAME = "SentiWordNetPolarity"
 
@@ -19,17 +20,32 @@ def save_df_with_labeled_tweets():
     df = DataLoader.from_csv(
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_RELATIVE_FILE_PATH
     )
-    vader_labels_series = Labeler.get_data_labels_with_vader(df)
-    textblob_labels_series = Labeler.get_data_labels_with_text_blob(df)
-    sentiwordnet_labels_series = Labeler.get_data_labels_with_sentiwordnet(df)
+    df_vader_sentiment_result = Labeler.get_data_sentiment_with_vader(df)
+    df_textblob_sentiment_result = Labeler.get_data_sentiment_with_text_blob(df)
+    df_sentiwordnet_sentiment_result = Labeler.get_data_sentiment_with_sentiwordnet(df)
     aggregated_df = pd.DataFrame(
         {
-            VADER_LABEL_COLUMN_NAME: vader_labels_series,
-            TEXTBLOB_LABEL_COLUMN_NAME: textblob_labels_series,
-            SENTIWORDNET_LABEL_COLUMN_NAME: sentiwordnet_labels_series,
+            **df.to_dict(),
+            VADER_POLARITY_COLUMN_NAME: df_vader_sentiment_result[
+                Labeler.POLARITY_COLUMN_NAME
+            ],
+            VADER_LABEL_COLUMN_NAME: df_vader_sentiment_result[
+                Labeler.LABEL_COLUMN_NAME
+            ],
+            TEXTBLOB_POLARITY_COLUMN_NAME: df_textblob_sentiment_result[
+                Labeler.POLARITY_COLUMN_NAME
+            ],
+            TEXTBLOB_LABEL_COLUMN_NAME: df_textblob_sentiment_result[
+                Labeler.LABEL_COLUMN_NAME
+            ],
+            SENTIWORDNET_POLARITY_COLUMN_NAME: df_sentiwordnet_sentiment_result[
+                Labeler.POLARITY_COLUMN_NAME
+            ],
+            SENTIWORDNET_LABEL_COLUMN_NAME: df_sentiwordnet_sentiment_result[
+                Labeler.LABEL_COLUMN_NAME
+            ],
         }
     )
-    print(aggregated_df)
     aggregated_df.to_csv(LIVERPOOL_VS_WATFORD_LABELED_RELATIVE_FILE_PATH)
     each_model_different_decision = (
         aggregated_df[
