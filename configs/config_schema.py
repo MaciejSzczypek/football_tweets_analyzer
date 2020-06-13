@@ -21,7 +21,6 @@ class OperationsForTextNormalizationConfig:
     remove_hashtags: bool
     remove_links: bool
     remove_user_mentions: bool
-    remove_noisy_documents: bool
 
 
 @dataclass
