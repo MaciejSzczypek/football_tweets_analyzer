@@ -9,7 +9,7 @@ class ConfigLoader:
     @classmethod
     def load(
         cls,
-        file_path: str = "/home/maciej_szczypek/PJATK/master_thesis/python_project/configs/files/liverpool_watford_config",
+        file_path: str = "configs/files/processing_configurations",
     ):
         config_dict = cls._load_dict_from_yaml(file_path)
         return Config(config_dict)

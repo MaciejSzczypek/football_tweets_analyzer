@@ -32,7 +32,6 @@ class TweetTextNormalizer:
         remove_hashtags: bool,
         remove_user_mentions: bool,
         remove_links: bool,
-        remove_noisy_documents: bool,
     ) -> List[str]:
         normalized_and_tokenized_text = []
         for word in tokenized_text:

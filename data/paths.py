@@ -1,7 +1,11 @@
 import os
 
+# region common
 DATA_DIR_NAME = "data"
 DATA_FILES_DIR_NAME = "source_files"
+# endregion common
+
+# region liverpool watford
 LIVERPOOL_VS_WATFORD_ORIGINAL_FILE_NAME = "liverpool_vs_watford_original"
 LIVERPOOL_VS_WATFORD_ORIGINAL_FILE_PATH = os.path.join(
     DATA_DIR_NAME, DATA_FILES_DIR_NAME, LIVERPOOL_VS_WATFORD_ORIGINAL_FILE_NAME
@@ -39,3 +43,13 @@ LIVERPOOL_VS_WATFORD_RANDOMLY_SELECTED_FILE_NAME = "liverpool_vs_watford_random_
 LIVERPOOL_VS_WATFORD_RANDOMLY_SELECTED_FILE_PATH = os.path.join(
     DATA_DIR_NAME, DATA_FILES_DIR_NAME, LIVERPOOL_VS_WATFORD_RANDOMLY_SELECTED_FILE_NAME,
 )
+# endregion liverpool watford
+
+# region auxiliary files
+AUXILIARY_FILES_SUB_DIR_NAME = "auxiliary_files"
+ENGLISH_CLUBS_FILE_NAME = "english_clubs.csv"
+ENGLISH_CLUBS_FILE_PATH = os.path.join(
+    DATA_DIR_NAME, AUXILIARY_FILES_SUB_DIR_NAME, ENGLISH_CLUBS_FILE_NAME,
+)
+# endregion auxiliary files
+

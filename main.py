@@ -1,61 +1,82 @@
+from gensim.summarization.summarizer import summarize, summarize_corpus
+from gensim.summarization import keywords, mz_keywords
+
+from configs.config_loader import ConfigLoader
+from corpus.cleaning.noisy_tweets_remover import NoisyTweetsRemover
+from corpus.corpus_transformation_pipeline import CorpusTransformer
+from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
 from data.loaders import DataLoader
 from data.paths import LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
-from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
-from corpus.corpus_transformation_pipeline import CorpusTransformer
-from configs.config_loader import ConfigLoader
 from information_extraction.keyphrase_extraction import get_top_ngrams
+from information_extraction.text_summarization import TweetsSummarizer
+from feature_extraction.tfidf import create_df_with_tfidf_feature_vectors
+from information_extraction.answer_basic_questions import QuestionsAnswerer
+from feature_extraction.document_similarity import get_cosine_similarity_df_from_tfidf_matrix
+from information_extraction.keyphrase_extraction import get_tfidf_weighted_keyphrases
 
 
-def run_liverpool_watford_processing():
+def run_liverpool_watford_analysis():
     configs = ConfigLoader.load()
-    df = DataLoader.from_csv(
+    initial_df = DataLoader.from_csv(
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
     )
+    df = NoisyTweetsRemover.remove_noisy_tweets(initial_df)
     tweets = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
-    normalized_corpus = CorpusTransformer.transform_twitter_corpus(
+    corpus_transformation_result = CorpusTransformer.transform_twitter_corpus(
         corpus=tweets, hyper_parameters_config=configs.settings["setting_1"],
     )
-    print(get_top_ngrams(normalized_corpus, ngram_length=1, ngrams_limit=10))
-    print(get_top_ngrams(normalized_corpus, ngram_length=2, ngrams_limit=10))
-    print(get_top_ngrams(normalized_corpus, ngram_length=3, ngrams_limit=10))
-    print(get_top_ngrams(normalized_corpus, ngram_length=4, ngrams_limit=10))
-    print(get_top_ngrams(normalized_corpus, ngram_length=5, ngrams_limit=10))
-    print(get_top_ngrams(normalized_corpus, ngram_length=6, ngrams_limit=10))
-    print(get_top_ngrams(normalized_corpus, ngram_length=7, ngrams_limit=10))
-    print(get_top_ngrams(normalized_corpus, ngram_length=8, ngrams_limit=10))
+    normalized_corpus = corpus_transformation_result.corpus
+    df = df[~df.index.isin(df.iloc[corpus_transformation_result.indexes_of_removed_tweets].index)]
+    flattened_and_normalized_corpus_text = []
+    separate_and_normalized_tweets = []
+    for tweet in normalized_corpus:
+        flattened_and_normalized_corpus_text.extend(tweet)
+        separate_and_normalized_tweets.append(" ".join(tweet))
 
-    # print(get_tfidf_weighted_keyphrases(normalized_corpus))
+    # question_answerer = QuestionsAnswerer(corpus=normalized_corpus)
+    # print(question_answerer.answer_basic_questions())
+    tfidf_df = create_df_with_tfidf_feature_vectors(corpus=separate_and_normalized_tweets)
+    # cosine_similairty_df = get_cosine_similarity_df_from_tfidf_matrix(tfidf_df)
 
-    """
-    SCRATCHES:
-    from feature_extraction.word2vector import get_trained_word_2_vector_model
-    from corpus.feature_extraction.tfidf import create_df_with_tfidf_feature_vectors
-    from corpus.feature_extraction.document_similarity import get_cosine_similarity_df_from_tfidf_matrix
-    
-    word_2_vector_model = get_trained_word_2_vector_model(normalized_corpus)
+    # words_occurences = count_word_occurences(flattened_and_normalized_corpus_text)
+    # tweets_scores = score_tweets(tfidf_tweets=normalized_corpus, words_occurence=words_occurences)
+    # print(tweets_scores)
+    print(keywords(". ".join(flattened_and_normalized_corpus_text), scores=True))
+    TweetsSummarizer.generate_tweets_summary_based_on_page_rank_and_random_sample(
+        tfidf_tweets=tfidf_df,
+        df_before_transformation=df,
+        sentences=normalized_corpus,
+    )
+    return
+    flattened_more = ". ".join(separate_and_normalized_tweets[:1000])
+    print(summarize(flattened_more, ratio=0.005, word_count=100))
 
-    ++++ CLUSTERING ++++
-    vectorized_matrix = transform_matrix_with_count_vectorizer(normalized_corpus)
+    # top_unigrams = get_top_ngrams(normalized_corpus, ngram_length=1, ngrams_limit=10)
+    top_bigrams = get_top_ngrams(normalized_corpus, ngram_length=2, ngrams_limit=5)
+    top_trigrams = get_top_ngrams(normalized_corpus, ngram_length=3, ngrams_limit=5)
+    top_quadgrams = get_top_ngrams(normalized_corpus, ngram_length=4, ngrams_limit=5)
+    top_pentagrams = get_top_ngrams(normalized_corpus, ngram_length=5, ngrams_limit=5)
+    top_hexagrams = get_top_ngrams(normalized_corpus, ngram_length=6, ngrams_limit=5)
 
-    k_means_model = cluster_data_with_k_means(word_2_vector_model.vectors, normalized_corpus)
-    try:
-        first_cluster_center = k_means_model.cluster_centers_[0]
-        print(list(map(lambda word: word[0], word_2_vector_model.similar_by_vector(first_cluster_center, topn=20))))
+    # print(top_unigrams)
+    print(top_bigrams)
+    print(top_trigrams)
+    print(top_quadgrams)
+    print(top_pentagrams)
+    print(top_hexagrams)
 
-        second_cluster_center = k_means_model.cluster_centers_[1]
-        print(list(map(lambda word: word[0], word_2_vector_model.similar_by_vector(second_cluster_center, topn=20))))
+    summary = generate_tweets_summary(
+        tweets=normalized_corpus,
+        top_n_grams=top_trigrams,
+        threshold=100,
+    )
+    print(summary)
 
-        third_cluster_center = k_means_model.cluster_centers_[2]
-        print(list(map(lambda word: word[0], word_2_vector_model.similar_by_vector(third_cluster_center, topn=20))))
-    except:
-        pass
-
-    ++++ COSINUS SIMILARITY ++++
-    tfidf_df = create_df_with_tfidf_feature_vectors(corpus=normalized_corpus)
-    cosine_similairty_df = get_cosine_similarity_df_from_tfidf_matrix(tfidf_df)
-    print(cosine_similairty_df)
-    """
+    # todo who played, score, where, what happened
+    # todo most relevant sentences
+    # todo topic modeling
+    # todo emotions, transfer learning
 
 
 if __name__ == "__main__":
-    run_liverpool_watford_processing()
+    run_liverpool_watford_analysis()

@@ -13,7 +13,6 @@ setting_1:
         remove_hashtags: true
         remove_links: true
         remove_user_mentions: true
-        remove_noisy_documents: true
       custom_data:
         stopwords: null
     tokenization:
@@ -35,7 +34,6 @@ setting_for_tweet_cleaning:
         remove_hashtags: false
         remove_links: true
         remove_user_mentions: true
-        remove_noisy_documents: true
       custom_data:
         stopwords: null
     tokenization:
