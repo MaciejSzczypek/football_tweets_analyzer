@@ -11,8 +11,8 @@ from information_extraction.keyphrase_extraction import get_top_ngrams
 from information_extraction.text_summarization import TweetsSummarizer
 from feature_extraction.tfidf import create_df_with_tfidf_feature_vectors
 from information_extraction.answer_basic_questions import QuestionsAnswerer
-from feature_extraction.document_similarity import get_cosine_similarity_df_from_tfidf_matrix
 from information_extraction.keyphrase_extraction import get_tfidf_weighted_keyphrases
+from corpus.tokenizing.custom_tokenizers import CustomTokenizer
 
 
 def run_liverpool_watford_analysis():
@@ -33,21 +33,20 @@ def run_liverpool_watford_analysis():
         flattened_and_normalized_corpus_text.extend(tweet)
         separate_and_normalized_tweets.append(" ".join(tweet))
 
-    # question_answerer = QuestionsAnswerer(corpus=normalized_corpus)
-    # print(question_answerer.answer_basic_questions())
-    tfidf_df = create_df_with_tfidf_feature_vectors(corpus=separate_and_normalized_tweets)
-    # cosine_similairty_df = get_cosine_similarity_df_from_tfidf_matrix(tfidf_df)
-
+    tokenized_tweets = [CustomTokenizer.tokenize(tweet) for tweet in tweets]
+    question_answerer = QuestionsAnswerer(corpus=tokenized_tweets)
+    answered_questions = question_answerer.answer_basic_questions()
+    print(answered_questions)
     # words_occurences = count_word_occurences(flattened_and_normalized_corpus_text)
     # tweets_scores = score_tweets(tfidf_tweets=normalized_corpus, words_occurence=words_occurences)
     # print(tweets_scores)
+    tfidf_df = create_df_with_tfidf_feature_vectors(corpus=separate_and_normalized_tweets)
     print(keywords(". ".join(flattened_and_normalized_corpus_text), scores=True))
     TweetsSummarizer.generate_tweets_summary_based_on_page_rank_and_random_sample(
         tfidf_tweets=tfidf_df,
         df_before_transformation=df,
         sentences=normalized_corpus,
     )
-    return
     flattened_more = ". ".join(separate_and_normalized_tweets[:1000])
     print(summarize(flattened_more, ratio=0.005, word_count=100))
 
@@ -65,7 +64,7 @@ def run_liverpool_watford_analysis():
     print(top_pentagrams)
     print(top_hexagrams)
 
-    summary = generate_tweets_summary(
+    summary = TweetsSummarizer.generate_tweets_summary(
         tweets=normalized_corpus,
         top_n_grams=top_trigrams,
         threshold=100,
