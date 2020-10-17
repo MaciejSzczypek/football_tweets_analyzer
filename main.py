@@ -21,6 +21,7 @@ def run_liverpool_watford_analysis():
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
     )
     df = NoisyTweetsRemover.remove_noisy_tweets(initial_df)
+    df.to_csv("/home/maciej_szczypek/PJATK/master_thesis/python_project/data/source_files/df_t")
     tweets = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
     corpus_transformation_result = CorpusTransformer.transform_twitter_corpus(
         corpus=tweets, hyper_parameters_config=configs.settings["setting_1"],
@@ -36,7 +37,6 @@ def run_liverpool_watford_analysis():
     tokenized_tweets = [CustomTokenizer.tokenize(tweet) for tweet in tweets]
     question_answerer = QuestionsAnswerer(corpus=tokenized_tweets)
     answered_questions = question_answerer.answer_basic_questions()
-    print(answered_questions)
     # words_occurences = count_word_occurences(flattened_and_normalized_corpus_text)
     # tweets_scores = score_tweets(tfidf_tweets=normalized_corpus, words_occurence=words_occurences)
     # print(tweets_scores)
@@ -70,7 +70,7 @@ def run_liverpool_watford_analysis():
         threshold=100,
     )
     print(summary)
-
+    # todo remove duplicated (probably bot-generated) tweets
     # todo who played, score, where, what happened
     # todo most relevant sentences
     # todo topic modeling
