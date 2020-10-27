@@ -1,7 +1,7 @@
 from typing import List, Optional, Set
 from nltk.stem import WordNetLemmatizer, PorterStemmer
+from nltk.corpus import stopwords as nltk_stopwords
 from corpus.cleaning.constants import (
-    BASIC_STOPWORDS,
     TWITTER_SPECIFIC_SPECIAL_CHARACTERS,
     CONTRACTION_EXTENSIONS,
     NORMALIZED_FOOTBALL_RESULT_FORMAT_REGEX,
@@ -12,7 +12,7 @@ import re
 
 class TweetTextNormalizer:
     def __init__(self, stopwords: Optional[Set[str]]):
-        self._stopwords = stopwords if stopwords else BASIC_STOPWORDS
+        self._stopwords = stopwords if stopwords else nltk_stopwords.words("english")
 
     @property
     def stopwords(self) -> Set[str]:
@@ -57,6 +57,11 @@ class TweetTextNormalizer:
                 word = self._lemmatize(word)
             if expand_contractions:
                 words = self._expand_contractions(word)
+                words = list(
+                    filter(
+                        lambda word_: not(word_ in self.stopwords and remove_stopwords), words
+                    )
+                )
                 normalized_and_tokenized_text.extend(words)
             else:
                 normalized_and_tokenized_text.append(word)

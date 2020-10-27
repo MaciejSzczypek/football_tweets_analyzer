@@ -1,0 +1,32 @@
+!!!!!!!
+passes: 56, iterations: 30, chunksize: 10000, update_every: 5, random_state: 61
+['liverpool', 'watford', 'lost', 'fan', 'man', 'point', '3-0', 'day', 'beat', 'united', 'like', 'klopp', 'time', '3', 'sarr']
+['liverpool', 'league', 'fan', 'team', 'game', 'season', 'win', 'arsenal', 'unbeaten', 'still', 'u', 'watford', 'would', 'one', 'go']
+!!!!!!!
+passes: 75, iterations: 32, chunksize: 10000, update_every: 5, random_state: 7
+['liverpool', 'watford', 'fan', '3-0', 'day', 'game', 'today', 'like', 'lovren', 'player', 'lost', 'sarr', '3', 'klopp', 'v']
+['liverpool', 'fan', 'league', 'team', 'arsenal', 'unbeaten', 'season', 'win', 'still', 'lost', 'u', 'game', 'one', 'run', 'watford']
+!!!!!!!!!!
+passes: 55, iterations: 22, chunksize: 10000, update_every: 5, random_state: 84
+['liverpool', 'watford', 'lost', 'game', 'today', '3-0', 'point', 'lose', 'team', 'beat', 'day', 'player', 'lovren', 'good', 'well']
+['liverpool', 'fan', 'league', 'arsenal', 'unbeaten', 'team', 'season', 'win', 'one', 'still', 'run', 'like', 'premier', 'u', 'game']
+!!!!!!!!!
+passes: 59, iterations: 41, chunksize: 10000, update_every: 5, random_state: 69
+['liverpool', 'fan', 'league', 'arsenal', 'season', 'unbeaten', 'game', 'win', 'still', 'run', 'point', 'year', 'lost', 'premier', 'one']
+['liverpool', 'watford', 'team', 'fan', 'today', 'lost', 'like', 'man', '3-0', 'see', 'u', 'beat', 'good', 'best', 'one']
+!!!!!!!!!!
+passes: 66, iterations: 44, chunksize: 10000, update_every: 5, random_state:
+['liverpool', 'watford', 'lost', 'today', '3-0', 'player', 'lovren', 'klopp', 'beat', 'sarr', 'v', 'day', 'well', 'game', '3']
+['liverpool', 'fan', 'league', 'arsenal', 'team', 'unbeaten', 'season', 'win', 'game', 'still', 'one', 'u', 'like', 'run', 'would']
+??????
+passes: 50, iterations: 60, chunksize: 10000, update_every: 5, random_state:
+['liverpool', 'fan', 'league', 'arsenal', 'season', 'team', 'lost', 'win', 'still', 'watford', 'game', 'one', 'man', 'would', 'unbeaten']
+['liverpool', 'watford', 'unbeaten', 'run', '3-0', 'day', 'game', 'today', 'well', 'end', 'u', 'lovren', 'back', 'player', "liverpool's"]
+???????????
+passes: 66, iterations: 70, chunksize: 10000, update_every: 5, random_state:
+['liverpool', 'fan', 'league', 'watford', 'arsenal', 'team', 'lost', 'unbeaten', 'season', 'still', 'win', 'u', 'man', 'premier', 'point']
+['liverpool', 'watford', 'game', 'go', 'would', 'today', 'one', 'see', 'good', 'day', 'know', 'fan', 'like', 'player', 'lovren']
+??????????
+passes: 78, iterations: 48, chunksize: 10000, update_every: 5, random_state: 69
+['liverpool', 'fan', 'league', 'arsenal', 'season', 'unbeaten', 'game', 'win', 'still', 'run', 'point', 'year', 'premier', 'lost', 'one']
+['liverpool', 'watford', 'team', 'today', 'fan', 'lost', 'like', '3-0', 'man', 'see', 'u', 'beat', 'good', 'best', 'day']

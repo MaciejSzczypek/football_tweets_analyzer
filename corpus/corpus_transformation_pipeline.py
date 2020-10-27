@@ -17,10 +17,10 @@ class CorpusTransformationResult:
 class CorpusTransformer:
     @classmethod
     def transform_twitter_corpus(
-            cls,
-            corpus: Array[str],
-            hyper_parameters_config: HyperParametersConfig,
-            remove_empty_tweets: bool = True,
+        cls,
+        corpus: Array[str],
+        hyper_parameters_config: HyperParametersConfig,
+        remove_empty_tweets: bool = True,
     ) -> CorpusTransformationResult:
         tokenized_tweets = CorpusTokenizer.tokenize(
             corpus=corpus,

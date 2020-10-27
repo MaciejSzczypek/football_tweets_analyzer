@@ -1,4 +1,3 @@
-BASIC_STOPWORDS = {"and", "a", "an", "the"}
 SPECIAL_CHARACTERS = {
     "~",
     ":",
