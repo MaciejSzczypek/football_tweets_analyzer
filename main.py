@@ -18,7 +18,7 @@ from information_extraction.answer_basic_questions import QuestionsAnswerer
 from information_extraction.keyphrase_extraction import get_tfidf_weighted_keyphrases
 from corpus.tokenizing.custom_tokenizers import CustomTokenizer
 
-4
+
 import re
 from feature_extraction.vectorizers import transform_matrix_with_count_vectorizer
 
@@ -44,6 +44,8 @@ def run_liverpool_watford_analysis():
     tokenized_tweets = [CustomTokenizer.tokenize(tweet) for tweet in tweets]
     question_answerer = QuestionsAnswerer(corpus=tokenized_tweets)
     answered_questions = question_answerer.answer_basic_questions()
+    print(answered_questions)
+    return
     # words_occurences = count_word_occurences(flattened_and_normalized_corpus_text)
     # tweets_scores = score_tweets(tfidf_tweets=normalized_corpus, words_occurence=words_occurences)
     # print(tweets_scores)
@@ -105,31 +107,63 @@ def run_liverpool_watford_analysis():
     from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
     from sklearn.decomposition import NMF, LatentDirichletAllocation, TruncatedSVD
     data_samples = separate_and_normalized_tweets
-    tfidf_vectorizer = TfidfVectorizer(token_pattern="\S+",
-                                       stop_words='english',
+    aggregated_data_samples = []
+    aggregated_data_size = 5
+    counter = 0
+    while True:
+        start = counter * aggregated_data_size
+        stop = (counter + 1) * aggregated_data_size
+        if stop < len(separate_and_normalized_tweets):
+            aggregated_data_samples.append(
+                " ".join(separate_and_normalized_tweets[start:stop])
+            )
+        else:
+            aggregated_data_samples.append(
+                " ".join(separate_and_normalized_tweets[start:])
+            )
+            break
+        counter += 1
+
+    #NMF: alpha: 0.014490563814621549, l1_ratio: 0.6340456783822659, max_iter: 3826, aggregated_data_size : 5
+    #0: liverpool watford lost game 3-0 today beat day time 3 v lose goal player lovren
+    #1: unbeaten run end liverpool's watford ended record season streak liverpool 44 arsenal 44game 49 sarr
+    #2: league win premier champion game liverpool winning season title going team gonna lose point year
+    #3: fan liverpool arsenal team man like season united u invincible invincibles best club know losing
+
+    # NMF: alpha: 0.46808551872103143, l1_ratio: 0.463080086560159, max_iter: 1548
+    # Topic  # 0: liverpool fan watford team arsenal lost season game like win today u man lose day
+    # Topic  # 1: run unbeaten end liverpool's watford ended 44game 44 3-0 streak record liverpool premier come thrashing
+    # Topic  # 2: league premier win champion winning title season unbeaten going game gonna liverpool liverpool's europa team
+
+    tfidf_vectorizer = TfidfVectorizer(
+        token_pattern=r"\S+",
+        stop_words='english',
+        min_df=25,
                                        )
     tfidf = tfidf_vectorizer.fit_transform(data_samples)
-
+    tfidf_agg = tfidf_vectorizer.fit_transform(aggregated_data_samples)
     tf_vectorizer = CountVectorizer(
-        token_pattern="\S+",
-        stop_words='english'
+        token_pattern=r"\S+",
+        stop_words='english',
+        min_df=10,
     )
-    tf = tf_vectorizer.fit_transform(data_samples)
-    for i in range(10):
-        max_iter = random.randint(1, 5000)
-        n_of_topics = random.randint(2, 5)
-        alpha = random.random()
-        l1_ratio = random.random()
-        print(f"NMF: alpha: {alpha}, l1_ratio: {l1_ratio}, max_iter: {max_iter}")
-        nmf = NMF(
-            n_components=n_of_topics,
-            alpha=alpha,
-            l1_ratio=l1_ratio,
-        ).fit(tfidf)
-        tfidf_feature_names = tfidf_vectorizer.get_feature_names()
-        print_top_words(nmf, tfidf_feature_names, 15)
+    # tf = tf_vectorizer.fit_transform(data_samples)
+    tf_agg = tf_vectorizer.fit_transform(aggregated_data_samples)
+    # for i in range(10):   # tu najlepsze 3 topici
+    #     max_iter = random.randint(1, 5000)
+    #     n_of_topics = random.randint(2, 4)
+    #     alpha = random.random()
+    #     l1_ratio = random.random()
+    #     print(f"NMF: alpha: {alpha}, l1_ratio: {l1_ratio}, max_iter: {max_iter}")
+    #     nmf = NMF(
+    #         n_components=n_of_topics,
+    #         alpha=alpha,
+    #         l1_ratio=l1_ratio,
+    #     ).fit(tfidf_agg)
+    #     tfidf_feature_names = tfidf_vectorizer.get_feature_names()
+    #     print_top_words(nmf, tfidf_feature_names, 15)
     # for i in range(10):
-    #     n_of_topics = random.randint(1, 5)
+    #     n_of_topics = random.randint(2, 3)
     #     max_iter = random.randint(1, 5000)
     #     learning_offset = random.randint(1, 1000)
     #     evaluate_every = random.randint(1, 200)
@@ -140,7 +174,7 @@ def run_liverpool_watford_analysis():
     #         learning_method='online',
     #         learning_offset=50.,
     #     )
-    #     lda.fit(tf)
+    #     lda.fit(tf_agg)
     #     tf_feature_names = tf_vectorizer.get_feature_names()
     #     print_top_words(lda, tf_feature_names, 15)
     # for i in range(10):
@@ -154,6 +188,23 @@ def run_liverpool_watford_analysis():
     #     print_top_words(lsi, tf_feature_names, 15)
 
     # todo Pachinko allocation, aggregated tweets and LDA
+    import tomotopy as tp
+    print("PA model")
+    pa_model = tp.HPAModel(
+        min_df=20,
+        k1=1,
+        k2=2,
+    )
+    for sentence in normalized_corpus:
+        pa_model.add_doc(sentence)
+    for i in range(0, 250, 25):
+        pa_model.train(100)
+    print('Log-likelihood: {}'.format(pa_model.ll_per_word))
+
+    print(pa_model.get_sub_topic_dist(0))
+    for k in range(pa_model.k2):
+        print('Top 10 words of subtopic #{}'.format(k))
+        print(([word for word, value in pa_model.get_topic_words(k, top_n=15)]))
     return
 
     # lsi = LsiModel(
@@ -195,12 +246,13 @@ def run_liverpool_watford_analysis():
         show_top_words_with_randomized_parameters()
 
     # priority todo's
-    # todo who played, score, where, mvp
-    # todo topic modeling
+    # todo who played, score, mvp
+    # todo refactor
     # todo emotions, transfer learning
 
     # less relevant for now:
     # todo improve most relevant sentences
+    # todo improve topic modeling
     # todo improve summarization
 
 

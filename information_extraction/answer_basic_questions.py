@@ -11,7 +11,7 @@ import re
 class QuestionsAnswerer:
     QUESTION_WHO_PLAYED = "Who have played?"
     QUESTION_SCORE = "What was the score?"
-    QUESTION_MOST_OUTSTANDING_PLAYERS = "Which players were the most outstanding?"
+    QUESTION_MOST_OFTEN_MENTIONED_PLAYERS = "Which players were the most often mentioned?"
     QUESTION_MOST_POPULAR_HASHTAGS = "What are the most popular hashtags?"
     QUESTION_MOST_POPULAR_EMOTICONS = "What are the most popular emoticons?"
     ANSWERS_TEMPLATE = Template(
@@ -19,8 +19,8 @@ class QuestionsAnswerer:
         f"- $who_played\n"
         f"{QUESTION_SCORE}\n"
         f"- $score\n"
-        f"{QUESTION_MOST_OUTSTANDING_PLAYERS}\n"
-        f"- $most_outstanding_players\n"
+        f"{QUESTION_MOST_OFTEN_MENTIONED_PLAYERS}\n"
+        f"- $most_often_mentioned_players\n"
     )
 
     def __init__(self, corpus) -> None:
@@ -49,7 +49,7 @@ class QuestionsAnswerer:
         return self.ANSWERS_TEMPLATE.substitute(
             who_played=who_played,
             score=score,
-            most_outstanding_players=None,
+            most_often_mentioned_players=None,
         )
 
     def _get_teams(self) -> Tuple[str, str]:
