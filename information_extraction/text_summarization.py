@@ -59,7 +59,7 @@ class TweetsSummarizer:
     ):
         random_indexes = tfidf_tweets.sample(n=random_batch_size, random_state=22).index
         tfidf_tweets_random_batch = tfidf_tweets[tfidf_tweets.index.isin(random_indexes)]
-        sentences_random_batch = [
+        sentences_from_random_batch = [
             SentenceInfoKeeper(sentence=sentence, initial_index=index)
             for index, sentence in enumerate(sentences)
             if index in random_indexes
@@ -75,7 +75,7 @@ class TweetsSummarizer:
                     sentence=sentence_info_keeper.sentence,
                 )
                 for index, sentence_info_keeper
-                in enumerate(sentences_random_batch)
+                in enumerate(sentences_from_random_batch)
             ),
             key=lambda score_info: score_info.score,
             reverse=True

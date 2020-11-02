@@ -1,5 +1,5 @@
 .idea/
 venv/
 data/source_files
-__pycache__
+*/__pycache__/
 *.pyc

@@ -1,4 +1,3 @@
-BASIC_STOPWORDS = {"and", "a", "an", "the"}
 SPECIAL_CHARACTERS = {
     "~",
     ":",
@@ -36,6 +35,7 @@ SPECIAL_CHARACTERS = {
 TWITTER_SPECIFIC_SPECIAL_CHARACTERS = {"#", "@"}
 FOOTBALL_RESULT_FORMAT_REGEX = r" *[0-9] ?[-:] ?[0-9] *"
 NORMALIZED_FOOTBALL_RESULT_FORMAT_REGEX = r"[0-9]-[0-9]"
+NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX = r"[a-zA-Z]+ [0-9]-[0-9] [a-zA-Z]+"
 CONTRACTION_EXTENSIONS = {
     "ain't": "not",
     "aint": "not",
