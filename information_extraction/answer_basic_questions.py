@@ -2,13 +2,103 @@ from string import Template
 from data.paths import ENGLISH_CLUBS_FILE_PATH
 from data.loaders import DataLoader
 from data.column_names import ENGLISH_CLUBS_KEY_COLUMN_NAME, ENGLISH_CLUBS_NAME_COLUMN_NAME
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Set, FrozenSet
 from corpus.cleaning.constants import NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX
-
+from nltk.tag.stanford import StanfordNERTagger
 import re
+import time
+import nltk
+import pprint
+from collections import OrderedDict
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Person:
+    first_name: Optional[str]
+    last_name: str
+    team_name: str
+
+
+@dataclass(frozen=True)
+class TeamSquad:
+    team_name: str
+    manager: Person
+    players: FrozenSet[Person]
+
+    def find_person_in_squad(self, last_name: str) -> Optional[Person]:
+        lowered_last_name = last_name.lower()
+        if self.manager.last_name.lower() == lowered_last_name:
+            return self.manager
+        for player in self.players:
+            if player.last_name.lower() == lowered_last_name:
+                return player
+
+
+@dataclass
+class TeamsSquads:
+    team_1: TeamSquad
+    team_2: TeamSquad
+
+    def find_person_in_squads(self, last_name: str) -> Optional[Person]:
+        person_found_in_team_1 = self.team_1.find_person_in_squad(last_name=last_name)
+        if person_found_in_team_1:
+            return self.team_1.find_person_in_squad(last_name=last_name)
+        return self.team_2.find_person_in_squad(last_name=last_name)
+
+
+
+TEAMS_SQUAD_MOCK = TeamsSquads(
+    team_1=TeamSquad(
+        team_name="watford",
+        manager=Person(
+            first_name="Nigel",
+            last_name="Pearson",
+            team_name="watford",
+        ),
+        players=frozenset({
+            Person(
+                first_name="Ismaila",
+                last_name="Sarr",
+                team_name="watford",
+            ),
+            Person(
+                first_name="Troy",
+                last_name="Deeney",
+                team_name="watford",
+            )
+        }),
+    ),
+    team_2=TeamSquad(
+        team_name="liverpool",
+        manager=Person(
+            first_name="Jurgen",
+            last_name="Klopp",
+            team_name="liverpool",
+        ),
+        players=frozenset({
+            Person(
+                first_name="Virgil",
+                last_name="van Dijk",
+                team_name="liverpool",
+            ),
+            Person(
+                first_name="Dejan",
+                last_name="Lovren",
+                team_name="liverpool",
+            ),
+            Person(
+                first_name="Jordan",
+                last_name="Henderson",
+                team_name="liverpool",
+            )
+        }),
+    ),
+)
 
 
 class QuestionsAnswerer:
+    PERSON_TAG = "PERSON"
     QUESTION_WHO_PLAYED = "Who have played?"
     QUESTION_SCORE = "What was the score?"
     QUESTION_MOST_OFTEN_MENTIONED_PLAYERS = "Which players were the most often mentioned?"
@@ -21,38 +111,84 @@ class QuestionsAnswerer:
         f"- $score\n"
         f"{QUESTION_MOST_OFTEN_MENTIONED_PLAYERS}\n"
         f"- $most_often_mentioned_players\n"
+        f"{QUESTION_MOST_POPULAR_HASHTAGS}\n"
+        f"- TODO\n"
+        f"{QUESTION_MOST_POPULAR_EMOTICONS}\n"
+        f"- TODO\n"
     )
 
     def __init__(self, corpus) -> None:
         self._corpus = corpus
         self._english_teams = DataLoader.from_csv(ENGLISH_CLUBS_FILE_PATH)
         self._team_keys = set(self._english_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME])
+        self._tagger = StanfordNERTagger(
+            "pretrained_models/stanford-ner-2014-08-27/classifiers/english.all.3class.distsim.crf.ser.gz",
+            'pretrained_models/stanford-ner-2014-08-27/stanford-ner-3.4.1.jar'
+        )
         self._teams_occurrences = {}
         self._score_occurrences = {}
+        self._persons_occurrences = {}
 
     def answer_basic_questions(self):
-        for tweet in self._corpus:
-            previous_token = None
-            for index, token in enumerate(tweet):
-                token = token.lower()
-                if index + 1 < len(tweet):
-                    self._add_match_result_if_occurs(
-                        first_token=previous_token,
-                        second_token=token,
-                        third_token=tweet[index + 1].lower()
-                    )
-                self._add_team_key_if_occurs(previous_token, token)
-                previous_token = token
-        score = self._get_score()
-        team_1, team_2 = self._get_teams()
-        who_played = f"{team_1} and {team_2}"
+        self._add_all_answer_related_occurrences()
         return self.ANSWERS_TEMPLATE.substitute(
-            who_played=who_played,
-            score=score,
-            most_often_mentioned_players=None,
+            who_played=self._answer_who_played(),
+            score=self._answer_what_was_the_score(),
+            most_often_mentioned_players=self._answer_who_were_the_most_often_mentioned_players()
         )
 
-    def _get_teams(self) -> Tuple[str, str]:
+    def _add_all_answer_related_occurrences(self):
+        for tweet in self._corpus:
+            previous_token_value = None
+            for token_index, token in enumerate(tweet):
+                token = token.lower()
+                next_token_index = token_index + 1
+                if next_token_index < len(tweet):
+                    self._add_potential_match_result_occurrence(
+                        first_token=previous_token_value,
+                        second_token=token,
+                        third_token=tweet[next_token_index].lower()
+                    )
+                self._add_potential_team_occurrence(previous_token_value, token)
+                previous_token_value = token
+
+        # tags
+        tweets_with_tags = self._tagger.tag_sents(self._corpus)
+        tweets_including_persons_tags = self._remove_tweets_without_persons_tags(
+            tweets_with_tags=tweets_with_tags
+        )
+        # pprint.pprint(tweets_including_persons_tags)
+        self._persons_occurrences = {}
+        for tweet in tweets_including_persons_tags:
+            previous_token_value = None
+            previous_token_tag = None
+            for token_index, token in enumerate(tweet):
+                token_value, token_tag = token
+                print(token_value, token_tag)
+                if token_tag == self.PERSON_TAG:
+                    person_found = TEAMS_SQUAD_MOCK.find_person_in_squads(last_name=token_value)
+                    person_found_last_name = person_found.last_name if person_found else None
+                    if not person_found and previous_token_tag == self.PERSON_TAG:
+                        consecutive_person_tagged_tokens = f"{previous_token_value} {token_value}"
+                        person_found = TEAMS_SQUAD_MOCK.find_person_in_squads(
+                            last_name=consecutive_person_tagged_tokens
+                        )
+                        if person_found:
+                            person_found_last_name = consecutive_person_tagged_tokens
+                    if person_found_last_name in self._persons_occurrences:
+                        self._persons_occurrences[person_found_last_name] += 1
+                    else:
+                        self._persons_occurrences[person_found_last_name] = 1
+                previous_token_value = token_value
+                previous_token_tag = token_tag
+        print(
+            sorted(
+                self._persons_occurrences.items(),
+                key=lambda t: t[1],
+            )
+        )
+
+    def _answer_who_played(self) -> str:
         teams = list(
             sorted(
                 self._teams_occurrences,
@@ -60,23 +196,40 @@ class QuestionsAnswerer:
             )
         )
         team_1 = self._english_teams[
-            self._english_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == teams[-2]
+            self._english_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == teams[-1]
         ][ENGLISH_CLUBS_NAME_COLUMN_NAME].iloc[0]
         team_2 = self._english_teams[
-            self._english_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == teams[-1]
+            self._english_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == teams[-2]
             ][ENGLISH_CLUBS_NAME_COLUMN_NAME].iloc[0]
-        return team_1, team_2
+        return f"{team_1} and {team_2}"
 
-    def _get_score(self):
+    def _answer_what_was_the_score(self) -> str:
         scores_sorted_by_occurrence = sorted(
             self._score_occurrences.items(),
             key=lambda score: score[1],
             reverse=True
         )
         most_frequent_score = scores_sorted_by_occurrence[0][0]
-        return most_frequent_score
+        team_1, score, team_2 = most_frequent_score.split()
+        team_1 = self._english_teams[
+            self._english_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == team_1
+            ][ENGLISH_CLUBS_NAME_COLUMN_NAME].iloc[0]
+        team_2 = self._english_teams[
+            self._english_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == team_2
+            ][ENGLISH_CLUBS_NAME_COLUMN_NAME].iloc[0]
+        return f"{team_1} {score} {team_2}"
 
-    def _add_match_result_if_occurs(self, first_token: str, second_token: str, third_token: str):
+    def _answer_who_were_the_most_often_mentioned_players(self) -> str:
+        return f""
+
+    @classmethod
+    def _remove_tweets_without_persons_tags(cls, tweets_with_tags):
+        return [
+            tweet for tweet in tweets_with_tags
+            if cls.PERSON_TAG in {token_with_tag[1] for token_with_tag in tweet}
+        ]
+
+    def _add_potential_match_result_occurrence(self, first_token: str, second_token: str, third_token: str):
         if not first_token:
             return
         concatenated_tokens = f"{first_token} {second_token} {third_token}"
@@ -86,14 +239,21 @@ class QuestionsAnswerer:
             else:
                 self._score_occurrences[concatenated_tokens] = 1
 
-    def _add_team_key_if_occurs(self, first_token: str, second_token: str):
+    def _add_potential_team_occurrence(self, first_token: str, second_token: str):
         if second_token in self._team_keys:
             self._add_team_occurrence(team_key=second_token)
         elif first_token and f"{first_token}{second_token}" in self._team_keys:
             self._add_team_occurrence(team_key=f"{first_token}{second_token}")
 
-    def _add_team_occurrence(self, team_key):
+    def _add_team_occurrence(self, team_key: str):
         if self._teams_occurrences.get(team_key):
             self._teams_occurrences[team_key] += 1
         else:
             self._teams_occurrences[team_key] = 1
+
+    def _add_potential_player_occurrence(self, player_key: str):
+        if self._persons_occurrences.get(player_key):
+            self._persons_occurrences[player_key] += 1
+        else:
+            self._persons_occurrences[player_key] = 1
+
