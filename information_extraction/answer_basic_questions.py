@@ -12,12 +12,17 @@ import pprint
 from collections import OrderedDict
 from dataclasses import dataclass
 
+# todo update pretrained model version
+
 
 @dataclass(frozen=True)
 class Person:
     first_name: Optional[str]
     last_name: str
     team_name: str
+
+    def __repr__(self) -> str:
+        return f"{self.first_name} {self.last_name} ({self.team_name})"
 
 
 @dataclass(frozen=True)
@@ -167,21 +172,20 @@ class QuestionsAnswerer:
                 print(token_value, token_tag)
                 if token_tag == self.PERSON_TAG:
                     person_found = TEAMS_SQUAD_MOCK.find_person_in_squads(last_name=token_value)
-                    person_found_last_name = person_found.last_name if person_found else None
                     if not person_found and previous_token_tag == self.PERSON_TAG:
                         consecutive_person_tagged_tokens = f"{previous_token_value} {token_value}"
                         person_found = TEAMS_SQUAD_MOCK.find_person_in_squads(
                             last_name=consecutive_person_tagged_tokens
                         )
-                        if person_found:
-                            person_found_last_name = consecutive_person_tagged_tokens
-                    if person_found_last_name in self._persons_occurrences:
-                        self._persons_occurrences[person_found_last_name] += 1
+                    if not person_found:
+                        continue
+                    if person_found in self._persons_occurrences:
+                        self._persons_occurrences[person_found] += 1
                     else:
-                        self._persons_occurrences[person_found_last_name] = 1
+                        self._persons_occurrences[person_found] = 1
                 previous_token_value = token_value
                 previous_token_tag = token_tag
-        print(
+        pprint.pprint(
             sorted(
                 self._persons_occurrences.items(),
                 key=lambda t: t[1],
