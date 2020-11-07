@@ -10,103 +10,16 @@ import time
 import nltk
 import pprint
 from collections import OrderedDict
-from dataclasses import dataclass
-
+from scraping.scrappers import TeamsSquadsScrapper
 # todo update pretrained model version
 
-
-@dataclass(frozen=True)
-class Person:
-    first_name: Optional[str]
-    last_name: str
-    team_name: str
-
-    def __repr__(self) -> str:
-        return f"{self.first_name} {self.last_name} ({self.team_name})"
-
-
-@dataclass(frozen=True)
-class TeamSquad:
-    team_name: str
-    manager: Person
-    players: FrozenSet[Person]
-
-    def find_person_in_squad(self, last_name: str) -> Optional[Person]:
-        lowered_last_name = last_name.lower()
-        if self.manager.last_name.lower() == lowered_last_name:
-            return self.manager
-        for player in self.players:
-            if player.last_name.lower() == lowered_last_name:
-                return player
-
-
-@dataclass
-class TeamsSquads:
-    team_1: TeamSquad
-    team_2: TeamSquad
-
-    def find_person_in_squads(self, last_name: str) -> Optional[Person]:
-        person_found_in_team_1 = self.team_1.find_person_in_squad(last_name=last_name)
-        if person_found_in_team_1:
-            return self.team_1.find_person_in_squad(last_name=last_name)
-        return self.team_2.find_person_in_squad(last_name=last_name)
-
-
-
-TEAMS_SQUAD_MOCK = TeamsSquads(
-    team_1=TeamSquad(
-        team_name="watford",
-        manager=Person(
-            first_name="Nigel",
-            last_name="Pearson",
-            team_name="watford",
-        ),
-        players=frozenset({
-            Person(
-                first_name="Ismaila",
-                last_name="Sarr",
-                team_name="watford",
-            ),
-            Person(
-                first_name="Troy",
-                last_name="Deeney",
-                team_name="watford",
-            )
-        }),
-    ),
-    team_2=TeamSquad(
-        team_name="liverpool",
-        manager=Person(
-            first_name="Jurgen",
-            last_name="Klopp",
-            team_name="liverpool",
-        ),
-        players=frozenset({
-            Person(
-                first_name="Virgil",
-                last_name="van Dijk",
-                team_name="liverpool",
-            ),
-            Person(
-                first_name="Dejan",
-                last_name="Lovren",
-                team_name="liverpool",
-            ),
-            Person(
-                first_name="Jordan",
-                last_name="Henderson",
-                team_name="liverpool",
-            )
-        }),
-    ),
-)
 
 
 class QuestionsAnswerer:
     PERSON_TAG = "PERSON"
     QUESTION_WHO_PLAYED = "Who have played?"
     QUESTION_SCORE = "What was the score?"
-    QUESTION_MOST_OFTEN_MENTIONED_PLAYERS = "Which players were the most often mentioned?"
+    QUESTION_MOST_OFTEN_MENTIONED_PLAYERS = "Which persons were the most often mentioned?"
     QUESTION_MOST_POPULAR_HASHTAGS = "What are the most popular hashtags?"
     QUESTION_MOST_POPULAR_EMOTICONS = "What are the most popular emoticons?"
     ANSWERS_TEMPLATE = Template(
@@ -164,17 +77,17 @@ class QuestionsAnswerer:
         )
         # pprint.pprint(tweets_including_persons_tags)
         self._persons_occurrences = {}
+        teams_squads = self._get_teams_squads()
         for tweet in tweets_including_persons_tags:
             previous_token_value = None
             previous_token_tag = None
             for token_index, token in enumerate(tweet):
                 token_value, token_tag = token
-                print(token_value, token_tag)
                 if token_tag == self.PERSON_TAG:
-                    person_found = TEAMS_SQUAD_MOCK.find_person_in_squads(last_name=token_value)
+                    person_found = teams_squads.find_person_in_squads(last_name=token_value)
                     if not person_found and previous_token_tag == self.PERSON_TAG:
                         consecutive_person_tagged_tokens = f"{previous_token_value} {token_value}"
-                        person_found = TEAMS_SQUAD_MOCK.find_person_in_squads(
+                        person_found = teams_squads.find_person_in_squads(
                             last_name=consecutive_person_tagged_tokens
                         )
                     if not person_found:
@@ -261,3 +174,7 @@ class QuestionsAnswerer:
         else:
             self._persons_occurrences[player_key] = 1
 
+    @classmethod
+    def _get_teams_squads(cls):
+        teams_squads_scrapper = TeamsSquadsScrapper(team_1_name="Watford FC", team_2_name="Liverpool FC")
+        return teams_squads_scrapper.get_teams_squads()

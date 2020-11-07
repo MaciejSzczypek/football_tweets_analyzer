@@ -45,24 +45,25 @@ def run_liverpool_watford_analysis():
     question_answerer = QuestionsAnswerer(corpus=tokenized_tweets)
     answered_questions = question_answerer.answer_basic_questions()
     print(answered_questions)
-    return
+
     # words_occurences = count_word_occurences(flattened_and_normalized_corpus_text)
     # tweets_scores = score_tweets(tfidf_tweets=normalized_corpus, words_occurence=words_occurences)
     # print(tweets_scores)
     tfidf_df = create_df_with_tfidf_feature_vectors(corpus=separate_and_normalized_tweets,
                                                     maximum_number_of_features=100)
     # print(keywords(". ".join(flattened_and_normalized_corpus_text), scores=True))
-    # TweetsSummarizer.generate_tweets_summary_based_on_page_rank_and_random_sample(
-    #     tfidf_tweets=tfidf_df,
-    #     df_before_transformation=df,
-    #     sentences=normalized_corpus,
-    # )
-    # flattened_more = ". ".join(separate_and_normalized_tweets[:1000])
-    # print(summarize(flattened_more, ratio=0.005, word_count=100))
-
+    TweetsSummarizer.generate_tweets_summary_based_on_page_rank_and_random_sample(
+        tfidf_tweets=tfidf_df,
+        df_before_transformation=df,
+        sentences=normalized_corpus,
+    )
+    return
+    flattened_more = ". ".join(separate_and_normalized_tweets[:1000])
+    print(summarize(flattened_more, ratio=1, word_count=50))
+    return
     # # top_unigrams = get_top_ngrams(normalized_corpus, ngram_length=1, ngrams_limit=10)
     # top_bigrams = get_top_ngrams(normalized_corpus, ngram_length=2, ngrams_limit=5)
-    # top_trigrams = get_top_ngrams(normalized_corpus, ngram_length=3, ngrams_limit=5)
+    top_trigrams = get_top_ngrams(normalized_corpus, ngram_length=3, ngrams_limit=5)
     # top_quadgrams = get_top_ngrams(normalized_corpus, ngram_length=4, ngrams_limit=5)
     # top_pentagrams = get_top_ngrams(normalized_corpus, ngram_length=5, ngrams_limit=5)
     # top_hexagrams = get_top_ngrams(normalized_corpus, ngram_length=6, ngrams_limit=5)
@@ -74,13 +75,14 @@ def run_liverpool_watford_analysis():
     # print(top_pentagrams)
     # print(top_hexagrams)
 
-    # summary = TweetsSummarizer.generate_tweets_summary(
-    #     tweets=normalized_corpus,
-    #     top_n_grams=top_trigrams,
-    #     threshold=100,
-    # )
-    # print(summary)
-
+    summary = TweetsSummarizer.generate_tweets_summary(
+        tweets=normalized_corpus,
+        top_n_grams=top_trigrams,
+        threshold=20,
+    )
+    print("=======")
+    print(summary)
+    return
     # section topic modeling
     lda_dictionary = corpora.Dictionary(normalized_corpus)
     print(lda_dictionary.items())
@@ -246,7 +248,7 @@ def run_liverpool_watford_analysis():
         show_top_words_with_randomized_parameters()
 
     # priority todo's
-    # todo who played, score, mvp
+    # todo who mvp
     # todo refactor
     # todo emotions, transfer learning
 
