@@ -1,4 +1,4 @@
-setting_1:
+analysis:
   corpus:
     normalization:
       operations:
@@ -19,7 +19,7 @@ setting_1:
       sentence_tokenizer: default_sentence_tokenizer
       word_tokenizer: custom_tokenizer
 
-setting_for_tweet_cleaning:
+setting_for_tweet_pre_cleaning:
   corpus:
     normalization:
       operations:

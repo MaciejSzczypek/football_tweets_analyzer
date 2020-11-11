@@ -11,7 +11,7 @@ import re
 
 
 class TweetTextNormalizer:
-    def __init__(self, stopwords: Optional[Set[str]]):
+    def __init__(self, stopwords: Optional[Set[str]] = None):
         self._stopwords = stopwords if stopwords else nltk_stopwords.words("english")
 
     @property
@@ -68,14 +68,6 @@ class TweetTextNormalizer:
         normalized_and_tokenized_text = [
             token for token in normalized_and_tokenized_text if token
         ]
-        # unrecognizable_words = 0
-        # english_dict = enchant.Dict("en_GB")
-        # for token in normalized_and_tokenized_text:
-        #     if not english_dict.check(token):
-        #         unrecognizable_words += 1
-
-        # if normalized_and_tokenized_text and unrecognizable_words / len(normalized_and_tokenized_text) > 0.5:
-        #     return []
         return normalized_and_tokenized_text
 
     @classmethod

@@ -2,11 +2,11 @@ import pandas as pd
 from data.column_names import LIV_WAT_TEXT_COLUMN_NAME, LIV_WAT_USER_NAME_COLUMN_NAME
 
 
-class NoisyTweetsRemover:
+class DuplicatedTweetsRemover:
     MINIMUM_NUMBER_OF_WORDS_TO_CONSIDER_TWEET_AS_DUPLICATE = 7
 
     @classmethod
-    def remove_noisy_tweets(cls, df: pd.DataFrame) -> pd.DataFrame:
+    def remove_duplicated_tweets(cls, df: pd.DataFrame) -> pd.DataFrame:
         df = cls._remove_duplicated_tweets_from_the_same_user(df)
         df = cls._remove_most_likely_duplicated_tweets_without_rt_marker(df)
         return df

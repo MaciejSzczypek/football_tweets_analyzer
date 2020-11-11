@@ -16,6 +16,9 @@ class Person:
     def __repr__(self) -> str:
         return f"{self.first_name} {self.last_name} ({self.team_name}, {self.role})"
 
+    def to_dict(self) -> Dict[str, str]:
+        return vars(self)
+
 
 @dataclass(frozen=True)
 class TeamSquad:

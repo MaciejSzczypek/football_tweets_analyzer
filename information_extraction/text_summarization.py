@@ -57,7 +57,7 @@ class TweetsSummarizer:
             top_n_tweets: int = 10,
             random_batch_size: int = 28000,
     ):
-        random_indexes = tfidf_tweets.sample(n=random_batch_size, random_state=22).index
+        random_indexes = tfidf_tweets.sample(n=random_batch_size, random_state=1).index
         tfidf_tweets_random_batch = tfidf_tweets[tfidf_tweets.index.isin(random_indexes)]
         sentences_from_random_batch = [
             SentenceInfoKeeper(sentence=sentence, initial_index=index)
