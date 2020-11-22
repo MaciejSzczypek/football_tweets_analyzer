@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 
 @dataclass()
-class CorpusTransformationResult:
+class TransformedCorpus:
     corpus: List[List[str]]
     indexes_of_removed_tweets: List[int]
 
@@ -21,7 +21,7 @@ class CorpusTransformer:
         corpus: Array[str],
         hyper_parameters_config: HyperParametersConfig,
         remove_empty_tweets: bool = True,
-    ) -> CorpusTransformationResult:
+    ) -> TransformedCorpus:
         tokenized_tweets = CorpusTokenizer.tokenize(
             corpus=corpus,
             word_tokenizer=hyper_parameters_config.corpus.tokenization.word_tokenizer,
@@ -45,7 +45,7 @@ class CorpusTransformer:
                     indexes_of_removed_tweets.append(index)
             tokenized_and_normalized_tweets = tokenized_and_normalized_tweets_without_empty_tweets
 
-        return CorpusTransformationResult(
+        return TransformedCorpus(
             corpus=tokenized_and_normalized_tweets,
             indexes_of_removed_tweets=indexes_of_removed_tweets
         )

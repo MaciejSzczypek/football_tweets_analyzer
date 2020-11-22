@@ -11,10 +11,12 @@ from gensim.models.ldamodel import LdaModel
 from gensim.models.ldamulticore import LdaMulticore
 from gensim import corpora
 import random
+import transformers
 import numpy as np
 from sklearn.cluster import KMeans
 from pprint import pprint
 from sklearn.preprocessing import normalize
+from pytorch_transformers import RobertaConfig, RobertaModel, RobertaTokenizer, RobertaForSequenceClassification, AutoConfig, AutoModel, AutoTokenizer
 import tomotopy as tp
 from data.paths import (
     LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH,
@@ -30,10 +32,16 @@ from feature_extraction.tweet_scoring import score_tweets
 from feature_extraction.word_frequency import count_word_occurences
 import pandas as pd
 import re
+from torch import optim
+from torch import nn
 from utils.printing import section_printing_decorator, new_line_appendix_decorator
 from feature_extraction.vectorizers import transform_matrix_with_count_vectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import NMF, LatentDirichletAllocation, TruncatedSVD
+from summarizer import Summarizer, TransformerSummarizer
+import spacy
+import logging
+import sys
 
 
 def remove_df_rows(df: pd.DataFrame, rows_to_remove_indexes):
@@ -83,7 +91,7 @@ def show_most_relevant_sentences(
         df_before_transformation: pd.DataFrame,
         sentences: List[List[str]],
 ):
-    print("3. EXTRACTIVE SUMMARIZATION - MOST RELEVANT SENTENCES")
+    print("3. MOST RELEVANT TWEETS")
     print()
     tfidf_df = create_df_with_tfidf_feature_vectors(
         corpus=normalized_tweets_as_strings,
@@ -96,6 +104,50 @@ def show_most_relevant_sentences(
     )
 
 
+def show_summaries_generated_with_transformers(df: pd.DataFrame) -> None:
+    print("4. TWEETS SUMMARIES GENERATED WITH TRANSFORMERS")
+    print()
+    roberta_model_name = "roberta-large"
+    gpt2_model_name = "gpt2-large"
+    sample_tweets = df[LIV_WAT_TEXT_COLUMN_NAME].sample(n=7500, random_state=0)
+    min_sentence_length = 10
+    max_sentence_length = 150
+    number_of_summary_sentences = 7
+    merged_tweets = ""
+    for tweet in sample_tweets:
+        merged_tweets += f" {tweet}"
+        if tweet[-1] not in {"?", ".", "!"}:
+            merged_tweets += "."
+    print("ffffff", merged_tweets[:400])
+    roberta_model = TransformerSummarizer(
+        transformer_type="Roberta",
+        transformer_model_key=roberta_model_name,
+    )
+    gpt_2_model = TransformerSummarizer(
+        transformer_type="GPT2",
+        transformer_model_key=gpt2_model_name
+    )
+    roberta_summary = roberta_model(
+        merged_tweets,
+        min_length=min_sentence_length,
+        max_length=max_sentence_length,
+        num_sentences=number_of_summary_sentences,
+    )
+    print()
+    print(roberta_summary)
+    print()
+
+    gpt_2_summary = gpt_2_model(
+        merged_tweets,
+        min_length=min_sentence_length,
+        max_length=max_sentence_length,
+        num_sentences=number_of_summary_sentences,
+    )
+    print()
+    print(gpt_2_summary)
+    print()
+
+
 @section_printing_decorator
 def show_topics_modeled_with_nmf(
         tfidf,
@@ -103,7 +155,8 @@ def show_topics_modeled_with_nmf(
         aggregated_tfidf,
         tfidf_vectorizer,
 ):
-    print("4. TOPIC MODELING")
+    pd.set_option('display.max_colwidth', -1)
+    print("5. TOPIC MODELING")
     print()
     max_iter = 1500
     n_of_topics = 4
@@ -119,9 +172,13 @@ def show_topics_modeled_with_nmf(
     tfidf_feature_names = tfidf_vectorizer.get_feature_names()
     print_top_words_for_all_topics(nmf, tfidf_feature_names, 15)
     tfidf_topic_similarity = nmf.transform(tfidf)
+    minimal_similarity_threshold = 0.015
     tweets_with_topic_assignment = pd.DataFrame(
         np.apply_along_axis(
-            lambda row: (max(row), int(np.argmax(row))),
+            lambda row:
+            (max(row), int(np.argmax(row)))
+            if max(row) > minimal_similarity_threshold
+            else (None, None),
             1,
             tfidf_topic_similarity,
         ),
@@ -132,22 +189,34 @@ def show_topics_modeled_with_nmf(
         column="tweet",
         value=original_tweets,
     )
-
+    print(len(
+        tweets_with_topic_assignment[
+            (tweets_with_topic_assignment["topic"] == 0)
+            | (tweets_with_topic_assignment["topic"] == 1)
+            | (tweets_with_topic_assignment["topic"] == 2)
+            | (tweets_with_topic_assignment["topic"] == 3)
+        ]
+    ))
+    # top tweets per topic
     for topic_index in range(n_of_topics):
-        print("!!!!", topic_index)
+        print()
+        print(f"=====TOP FOR TOPIC {topic_index}=====")
         topic_tweets = tweets_with_topic_assignment[
             tweets_with_topic_assignment["topic"] == topic_index
-            ]
-        top_topic_tweets = topic_tweets.sort_values(by="topic_value", ascending=False)[:5]
+        ]
+        top_topic_tweets = topic_tweets.sort_values(by="topic_value", ascending=False)[:10]
         print(top_topic_tweets)
-        print(len(topic_tweets))
+
     print(
-        tweets_with_topic_assignment[tweets_with_topic_assignment["topic_value"] > 0.07].sample(n=50)
+        tweets_with_topic_assignment[
+            (tweets_with_topic_assignment["topic"] != 0)
+            & (tweets_with_topic_assignment["topic"] != 1)
+            & (tweets_with_topic_assignment["topic"] != 2)
+            & (tweets_with_topic_assignment["topic"] != 3)
+        ][:10]
     )
 
-
 # todo roberta, opengpt3
-# todo filtrowanie po tematach, pokazac tweety najlepiej pasujace do tematow
 # todo time frames
 
 
@@ -176,9 +245,6 @@ def aggregate_tweets(
 def run_liverpool_watford_analysis():
     # data loading
     configs = ConfigLoader.load()
-    initial_df_with_emoticons = DataLoader.from_csv(
-        LIVERPOOL_VS_WATFORD_WITH_NON_ENGLISH_TWEETS_EXCLUDED_AND_RETWEETS_REMOVED_FILE_PATH
-    )
     initial_df_with_tweet_specific_noise_removed = DataLoader.from_csv(
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
     )
@@ -188,12 +254,15 @@ def run_liverpool_watford_analysis():
         initial_df_with_tweet_specific_noise_removed
     )
     tweets = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
-    corpus_transformation_result = CorpusTransformer.transform_twitter_corpus(
-        corpus=tweets, hyper_parameters_config=configs.settings["analysis"],
+    transformed_corpus_without_emoticons = CorpusTransformer.transform_twitter_corpus(
+        corpus=tweets, hyper_parameters_config=configs.settings["analysis_without_emoticons"],
     )
-    normalized_tweets_as_token_lists = corpus_transformation_result.corpus
+    transformed_corpus_with_emoticons = CorpusTransformer.transform_twitter_corpus(
+        corpus=tweets, hyper_parameters_config=configs.settings["analysis_with_emoticons"],
+    )
+    normalized_tweets_as_token_lists = transformed_corpus_without_emoticons.corpus
     df = remove_df_rows(
-        df=df, rows_to_remove_indexes=corpus_transformation_result.indexes_of_removed_tweets
+        df=df, rows_to_remove_indexes=transformed_corpus_without_emoticons.indexes_of_removed_tweets
     )
     tweets = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
     flattened_and_normalized_tweets = []
@@ -211,18 +280,20 @@ def run_liverpool_watford_analysis():
         tweets_to_aggregate=normalized_tweets_as_strings,
     )
     tfidf_aggregated_tweets = tfidf_vectorizer.fit_transform(aggregated_tweets)
+
     # top n-grams
     # show_top_ngrams(corpus=normalized_tweets_as_token_lists)
 
     # facts extraction
     # show_basic_facts(corpus=tweets)
 
-    # extractive summarization
+    # summarization
     # show_most_relevant_sentences(
     #     normalized_tweets_as_strings=normalized_tweets_as_strings,
     #     df_before_transformation=df,
     #     sentences=normalized_tweets_as_token_lists,
     # )
+    # show_summaries_generated_with_transformers(df)
 
     # topic modeling
     show_topics_modeled_with_nmf(
@@ -232,183 +303,9 @@ def run_liverpool_watford_analysis():
         tfidf_vectorizer=tfidf_vectorizer,
     )
 
-
-def alternatives():
-    return
-    summary = TweetsSummarizer.generate_tweets_summary(
-        tweets=normalized_tweets_as_token_lists,
-        top_n_grams=top_trigrams,
-        threshold=20,
-    )
-    print(summary)
-    flattened_more = ". ".join(normalized_tweets_as_strings[:5000])
-    print(summarize(flattened_more, ratio=1, word_count=50))
-
-    # ???
-    words_occurences = count_word_occurences(flattened_and_normalized_tweets)
-    tweets_scores = score_tweets(tweets=normalized_tweets_as_token_lists,
-                                 words_occurence=words_occurences)
-    # print(tweets_scores)
-
-    # section topic modeling
-    lda_dictionary = corpora.Dictionary(normalized_tweets_as_token_lists)
-    print(lda_dictionary.items())
-    lda_prepared_corpus = [lda_dictionary.doc2bow(text) for text in
-                           normalized_tweets_as_token_lists]
-    print("before lda model")
-
-    def show_top_words(model):
-        for topic in model.print_topics(num_topics=5, num_words=15):
-            words = re.findall("\".*?\"", topic[1])
-            print([word.replace('"', '') for word in words])
-            # print(topic[1])
-
-    data_samples = normalized_tweets_as_strings
-    aggregated_data_samples = []
-    aggregated_data_size = 5
-    counter = 0
-    while True:
-        start = counter * aggregated_data_size
-        stop = (counter + 1) * aggregated_data_size
-        if stop < len(normalized_tweets_as_strings):
-            aggregated_data_samples.append(
-                " ".join(normalized_tweets_as_strings[start:stop])
-            )
-        else:
-            aggregated_data_samples.append(
-                " ".join(normalized_tweets_as_strings[start:])
-            )
-            break
-        counter += 1
-
-    # NMF: alpha: 0.014490563814621549, l1_ratio: 0.6340456783822659, max_iter: 3826, aggregated_data_size : 5
-    # 0: liverpool watford lost game 3-0 today beat day time 3 v lose goal player lovren
-    # 1: unbeaten run end liverpool's watford ended record season streak liverpool 44 arsenal 44game 49 sarr
-    # 2: league win premier champion game liverpool winning season title going team gonna lose point year
-    # 3: fan liverpool arsenal team man like season united u invincible invincibles best club know losing
-
-    # NMF: alpha: 0.46808551872103143, l1_ratio: 0.463080086560159, max_iter: 1548
-    # Topic  # 0: liverpool fan watford team arsenal lost season game like win today u man lose day
-    # Topic  # 1: run unbeaten end liverpool's watford ended 44game 44 3-0 streak record liverpool premier come thrashing
-    # Topic  # 2: league premier win champion winning title season unbeaten going game gonna liverpool liverpool's europa team
-
-    tfidf_vectorizer = TfidfVectorizer(
-        token_pattern=r"\S+",
-        stop_words='english',
-        min_df=25,
-    )
-    tfidf = tfidf_vectorizer.fit_transform(data_samples)
-    tfidf_agg = tfidf_vectorizer.fit_transform(aggregated_data_samples)
-    tf_vectorizer = CountVectorizer(
-        token_pattern=r"\S+",
-        stop_words='english',
-        min_df=10,
-    )
-    # tf = tf_vectorizer.fit_transform(data_samples)
-    tf_agg = tf_vectorizer.fit_transform(aggregated_data_samples)
-    for i in range(10):  # tu najlepsze 3 topici
-        max_iter = random.randint(1, 5000)
-        n_of_topics = random.randint(2, 4)
-        alpha = random.random()
-        l1_ratio = random.random()
-        print(f"NMF: alpha: {alpha}, l1_ratio: {l1_ratio}, max_iter: {max_iter}")
-        nmf = NMF(
-            n_components=n_of_topics,
-            alpha=alpha,
-            l1_ratio=l1_ratio,
-        ).fit(tfidf_agg)
-        tfidf_feature_names = tfidf_vectorizer.get_feature_names()
-        print_top_words_for_all_topics(nmf, tfidf_feature_names, 15)
-    # for i in range(10):
-    #     n_of_topics = random.randint(2, 3)
-    #     max_iter = random.randint(1, 5000)
-    #     learning_offset = random.randint(1, 1000)
-    #     evaluate_every = random.randint(1, 200)
-    #     print(f"LDA: learning_offset: {learning_offset}, evaluate_every: {evaluate_every}, max_iter: {max_iter}")
-    #     lda = LatentDirichletAllocation(
-    #         n_components=n_of_topics,
-    #         max_iter=5,
-    #         learning_method='online',
-    #         learning_offset=50.,
-    #     )
-    #     lda.fit(tf_agg)
-    #     tf_feature_names = tf_vectorizer.get_feature_names()
-    #     print_top_words(lda, tf_feature_names, 15)
-    # for i in range(10):
-    #     n_iter = random.randint(1, 15000)
-    #     tol = random.random()
-    #     print(f"LSI: n_iter: {n_iter}, tol: {tol}")
-    #     lsi = TruncatedSVD(
-    #         n_components=2, algorithm='randomized', n_iter=n_iter, tol=tol)
-    #     lsi.fit(tf)
-    #     tf_feature_names = tf_vectorizer.get_feature_names()
-    #     print_top_words(lsi, tf_feature_names, 15)
-
-    # todo Pachinko allocation, aggregated tweets and LDA
-    print("PA model")
-    pa_model = tp.HPAModel(
-        min_df=20,
-        k1=1,
-        k2=2,
-    )
-    for sentence in normalized_tweets_as_token_lists:
-        pa_model.add_doc(sentence)
-    for i in range(0, 250, 25):
-        pa_model.train(100)
-    print('Log-likelihood: {}'.format(pa_model.ll_per_word))
-
-    print(pa_model.get_sub_topic_dist(0))
-    for k in range(pa_model.k2):
-        print('Top 10 words of subtopic #{}'.format(k))
-        print(([word for word, value in pa_model.get_topic_words(k, top_n=15)]))
-    return
-
-    # lsi = LsiModel(
-    #     corpus=lda_prepared_corpus,
-    #     num_topics=2,
-    #     id2word=lda_dictionary,
-    #     chunksize=10000,
-    #     power_iters=75,
-    #     onepass=False,
-    #     # extra_samples=1000,
-    #     # workers=6,
-    # )
-    # show_top_words(lsi)
-    # return
-    def show_top_words_with_randomized_parameters():
-        # random_state = random.randint(1, 100)
-        passes = random.randint(50, 80)
-        iterations = random.randint(10, 40)
-        chunksize = 10000  # random.randint(3200, 3800)
-        update_every = 5  # random.randint(10, 100)
-        print("===========")
-        print(
-            f"passes: {passes}, iterations: {iterations}, chunksize: {chunksize}, update_every: {update_every}, random_state: ")
-        lda_model = LdaMulticore(
-            corpus=lda_prepared_corpus,
-            num_topics=2,
-            id2word=lda_dictionary,
-            passes=passes,
-            iterations=iterations,
-            chunksize=chunksize,
-            # random_state=random_state,
-            # random_state=1,
-            # update_every=update_every
-            # workers=6,
-        )
-        show_top_words(lda_model)
-
-    for i in range(10):
-        show_top_words_with_randomized_parameters()
-
-    # priority todo's
+    # todo improve summarization
     # todo refactor
     # todo emotions, transfer learning
-
-    # less relevant for now:
-    # todo improve most relevant sentences
-    # todo improve topic modeling
-    # todo improve summarization
 
 
 if __name__ == "__main__":
