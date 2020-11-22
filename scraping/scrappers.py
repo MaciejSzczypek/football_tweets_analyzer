@@ -62,17 +62,12 @@ class TeamsSquadsScrapper:
             team_names=self._team_names,
         )
         team_1_squad = self._get_team_squad(
-            team_name=self._team_1_name,
-            team_key=team_keys.get(self._team_1_name),
+            team_name=self._team_1_name, team_key=team_keys.get(self._team_1_name),
         )
         team_2_squad = self._get_team_squad(
-            team_name=self._team_2_name,
-            team_key=team_keys.get(self._team_2_name),
+            team_name=self._team_2_name, team_key=team_keys.get(self._team_2_name),
         )
-        return TeamsSquads(
-            team_1=team_1_squad,
-            team_2=team_2_squad,
-        )
+        return TeamsSquads(team_1=team_1_squad, team_2=team_2_squad,)
 
     @classmethod
     def _get_team_squad(cls, team_name: str, team_key: str) -> TeamSquad:
@@ -91,9 +86,10 @@ class TeamsSquadsScrapper:
                 elif row_child.name == "td" and role:
                     link_element = row_child.find("a")
                     if link_element:
-                        person_first_name, person_last_name = (
-                            cls._get_person_name_from_link_element(link_element)
-                        )
+                        (
+                            person_first_name,
+                            person_last_name,
+                        ) = cls._get_person_name_from_link_element(link_element)
                         if person_last_name:
                             persons.add(
                                 Person(
@@ -103,19 +99,20 @@ class TeamsSquadsScrapper:
                                     role=role,
                                 )
                             )
-        return TeamSquad(
-            team_name=team_name,
-            persons=frozenset(persons),
-        )
+        return TeamSquad(team_name=team_name, persons=frozenset(persons),)
 
     @classmethod
-    def _get_team_names_to_keys_mapping(cls, url: str, team_names: Set[str]) -> Dict[str, str]:
+    def _get_team_names_to_keys_mapping(
+        cls, url: str, team_names: Set[str]
+    ) -> Dict[str, str]:
         page_content = cls._get_page_content(url)
         parser = cls._get_parser(page_content)
         team_keys = {}
         for team_name in team_names:
             team_badge_element = parser.find("img", title=team_name)
-            team_keys[team_name] = cls._get_team_key(team_badge_element=team_badge_element)
+            team_keys[team_name] = cls._get_team_key(
+                team_badge_element=team_badge_element
+            )
         return team_keys
 
     @classmethod
@@ -123,18 +120,20 @@ class TeamsSquadsScrapper:
         return team_badge_element.parent.get("href").rsplit("/", 1)[0]
 
     @classmethod
-    def _get_person_name_from_link_element(cls, link_element) -> Optional[Tuple[str, str]]:
+    def _get_person_name_from_link_element(
+        cls, link_element
+    ) -> Optional[Tuple[str, str]]:
         first_name = None
         last_name = None
         href = link_element.get("href")
         if re.match(r"/player_summary/([a-zA-Z\-])+/", href):
             original_person_name = link_element.get("title")
-            lowered_person_name_without_diacritics = (
-                cls._get_lowered_person_name_without_diacritics(href)
+            lowered_person_name_without_diacritics = cls._get_lowered_person_name_without_diacritics(
+                href
             )
             person_name_without_diacritics = cls._transform_diacritics_to_ascii_characters(
                 original_name=original_person_name,
-                lowered_name_without_diacritics=lowered_person_name_without_diacritics
+                lowered_name_without_diacritics=lowered_person_name_without_diacritics,
             )
             name_tokens = person_name_without_diacritics.split()
             if len(name_tokens) > 1:
@@ -152,18 +151,18 @@ class TeamsSquadsScrapper:
 
     @classmethod
     def _get_parser(cls, page_content: str) -> bs4.BeautifulSoup:
-        return bs4.BeautifulSoup(page_content, 'html.parser')
+        return bs4.BeautifulSoup(page_content, "html.parser")
 
     @classmethod
     def _get_lowered_person_name_without_diacritics(
-            cls, person_summary_key: str,
+        cls, person_summary_key: str,
     ):
         ascii_person_name_with_dashes = person_summary_key.split("/")[-2]
         return " ".join(ascii_person_name_with_dashes.split("-"))
 
     @classmethod
     def _transform_diacritics_to_ascii_characters(
-            cls, original_name: str, lowered_name_without_diacritics: str
+        cls, original_name: str, lowered_name_without_diacritics: str
     ):
         new_name = ""
         for index, character in enumerate(original_name):
@@ -175,4 +174,3 @@ class TeamsSquadsScrapper:
                     character_in_ascii.upper()
                 new_name += character_in_ascii
         return new_name
-

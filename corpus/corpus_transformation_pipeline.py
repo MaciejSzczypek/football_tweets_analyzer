@@ -43,9 +43,11 @@ class CorpusTransformer:
                     tokenized_and_normalized_tweets_without_empty_tweets.append(tweet)
                 else:
                     indexes_of_removed_tweets.append(index)
-            tokenized_and_normalized_tweets = tokenized_and_normalized_tweets_without_empty_tweets
+            tokenized_and_normalized_tweets = (
+                tokenized_and_normalized_tweets_without_empty_tweets
+            )
 
         return TransformedCorpus(
             corpus=tokenized_and_normalized_tweets,
-            indexes_of_removed_tweets=indexes_of_removed_tweets
+            indexes_of_removed_tweets=indexes_of_removed_tweets,
         )

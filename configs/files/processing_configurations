@@ -51,7 +51,7 @@ setting_for_tweet_pre_cleaning:
         apply_lemmatization: false
         expand_contractions: false
         remove_special_characters: false
-        remove_emoticons: true
+        remove_emoticons: false
         remove_hashtags: false
         remove_links: true
         remove_user_mentions: true

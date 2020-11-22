@@ -20,11 +20,14 @@ def save_df_with_normalized_tweets():
         hyper_parameters_config=configs.settings["setting_for_tweet_pre_cleaning"],
         remove_empty_tweets=False,
     )
-    normalized_corpus = [" ".join(tweet_words) for tweet_words in normalized_corpus.corpus]
+    normalized_corpus = [
+        " ".join(tweet_words) for tweet_words in normalized_corpus.corpus
+    ]
     new_df = df.copy()
     new_df[LIV_WAT_TEXT_COLUMN_NAME] = normalized_corpus
     new_df = new_df[new_df["text"].astype(bool)]
     new_df.to_csv(LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH)
+    print(len(new_df))
 
 
 if __name__ == "__main__":

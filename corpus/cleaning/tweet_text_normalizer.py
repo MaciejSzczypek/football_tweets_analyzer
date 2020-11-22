@@ -59,7 +59,10 @@ class TweetTextNormalizer:
                 words = self._expand_contractions(word)
                 words = list(
                     filter(
-                        lambda word_: not(word_ in self.stopwords and remove_stopwords), words
+                        lambda word_: not (
+                            word_ in self.stopwords and remove_stopwords
+                        ),
+                        words,
                     )
                 )
                 normalized_and_tokenized_text.extend(words)

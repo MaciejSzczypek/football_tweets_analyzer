@@ -1,7 +1,10 @@
 from string import Template
 from data.paths import ENGLISH_CLUBS_FILE_PATH
 from data.loaders import DataLoader
-from data.column_names import ENGLISH_CLUBS_KEY_COLUMN_NAME, ENGLISH_CLUBS_NAME_COLUMN_NAME
+from data.column_names import (
+    ENGLISH_CLUBS_KEY_COLUMN_NAME,
+    ENGLISH_CLUBS_NAME_COLUMN_NAME,
+)
 from typing import Dict, Optional, Tuple, Set, FrozenSet, List
 from corpus.cleaning.constants import NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX
 from nltk.tag.stanford import StanfordNERTagger
@@ -15,6 +18,7 @@ from corpus.tokenizing.custom_tokenizers import CustomTokenizer
 import re
 from utils.printing import section_printing_decorator, new_line_appendix_decorator
 import pandas as pd
+
 # todo update pre-trained model version
 
 
@@ -22,7 +26,9 @@ class FactsExtractor:
     PERSON_TAG = "PERSON"
     QUESTION_WHO_PLAYED = "Which teams have played?"
     QUESTION_RESULT = "What was the result?"
-    QUESTION_MOST_OFTEN_MENTIONED_PERSONS = "Which persons were the most often mentioned?"
+    QUESTION_MOST_OFTEN_MENTIONED_PERSONS = (
+        "Which persons were the most often mentioned?"
+    )
     QUESTION_MOST_POPULAR_HASHTAGS = "What are the most popular hashtags?"
     QUESTION_MOST_POPULAR_EMOTICONS = "What are the most popular emoticons?"
 
@@ -32,7 +38,7 @@ class FactsExtractor:
         self._team_keys = set(self._premier_league_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME])
         self._tagger = StanfordNERTagger(
             "pretrained_models/stanford-ner-2014-08-27/classifiers/english.all.3class.distsim.crf.ser.gz",
-            'pretrained_models/stanford-ner-2014-08-27/stanford-ner-3.4.1.jar'
+            "pretrained_models/stanford-ner-2014-08-27/stanford-ner-3.4.1.jar",
         )
         self._teams_occurrences = {}
         self._score_occurrences = {}
@@ -59,7 +65,7 @@ class FactsExtractor:
                     self._add_potential_match_result_occurrence(
                         first_token=previous_token_value,
                         second_token=token,
-                        third_token=tweet[next_token_index].lower()
+                        third_token=tweet[next_token_index].lower(),
                     )
                 self._add_potential_team_occurrence(previous_token_value, token)
                 self._add_potential_hashtag_occurrence(token)
@@ -78,9 +84,13 @@ class FactsExtractor:
             for token_index, token in enumerate(tweet):
                 token_value, token_tag = token
                 if token_tag == self.PERSON_TAG:
-                    person_found = teams_squads.find_person_in_squads(last_name=token_value)
+                    person_found = teams_squads.find_person_in_squads(
+                        last_name=token_value
+                    )
                     if not person_found and previous_token_tag == self.PERSON_TAG:
-                        consecutive_person_tagged_tokens = f"{previous_token_value} {token_value}"
+                        consecutive_person_tagged_tokens = (
+                            f"{previous_token_value} {token_value}"
+                        )
                         person_found = teams_squads.find_person_in_squads(
                             last_name=consecutive_person_tagged_tokens
                         )
@@ -106,8 +116,7 @@ class FactsExtractor:
     @new_line_appendix_decorator
     def _print_5_most_often_mentioned_persons(self) -> None:
         top_5_most_often_mentioned_persons = self._get_top_n_counted_items_from_dict(
-            dict=self._persons_occurrences,
-            n=5,
+            dict=self._persons_occurrences, n=5,
         )
         top_5_persons = []
         for person, person_count in top_5_most_often_mentioned_persons:
@@ -122,8 +131,7 @@ class FactsExtractor:
     @new_line_appendix_decorator
     def _print_10_most_popular_hashtags(self) -> None:
         top_5_most_popular_hashtags = self._get_top_n_counted_items_from_dict(
-            dict=self._hashtag_occurrences,
-            n=10,
+            dict=self._hashtag_occurrences, n=10,
         )
         top_5_hashtags = []
         for hashtag, hashtag_count in top_5_most_popular_hashtags:
@@ -140,21 +148,14 @@ class FactsExtractor:
         print(self.QUESTION_MOST_POPULAR_EMOTICONS, sep="\n")
 
     def _get_teams_which_played(self) -> Tuple[str, str]:
-        teams = list(
-            sorted(
-                self._teams_occurrences,
-                key=self._teams_occurrences.get,
-            )
-        )
+        teams = list(sorted(self._teams_occurrences, key=self._teams_occurrences.get,))
         team_1 = self._get_club_name_from_club_key(key=teams[-1])
         team_2 = self._get_club_name_from_club_key(key=teams[-2])
         return team_1, team_2
 
     def _get_match_result(self) -> Tuple[str, str, str]:
         scores_sorted_by_occurrence = sorted(
-            self._score_occurrences.items(),
-            key=lambda score: score[1],
-            reverse=True
+            self._score_occurrences.items(), key=lambda score: score[1], reverse=True
         )
         most_frequent_score = scores_sorted_by_occurrence[0][0]
         team_1, score, team_2 = most_frequent_score.split()
@@ -165,15 +166,20 @@ class FactsExtractor:
     @classmethod
     def _remove_tweets_without_persons_tags(cls, tweets_with_tags):
         return [
-            tweet for tweet in tweets_with_tags
+            tweet
+            for tweet in tweets_with_tags
             if cls.PERSON_TAG in {token_with_tag[1] for token_with_tag in tweet}
         ]
 
-    def _add_potential_match_result_occurrence(self, first_token: str, second_token: str, third_token: str):
+    def _add_potential_match_result_occurrence(
+        self, first_token: str, second_token: str, third_token: str
+    ):
         if not first_token:
             return
         concatenated_tokens = f"{first_token} {second_token} {third_token}"
-        if re.match(NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX, concatenated_tokens):
+        if re.match(
+            NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX, concatenated_tokens
+        ):
             if self._score_occurrences.get(concatenated_tokens):
                 self._score_occurrences[concatenated_tokens] += 1
             else:
@@ -201,20 +207,18 @@ class FactsExtractor:
     def _get_club_name_from_club_key(self, key):
         return self._premier_league_teams[
             self._premier_league_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == key
-            ][ENGLISH_CLUBS_NAME_COLUMN_NAME].iloc[0]
+        ][ENGLISH_CLUBS_NAME_COLUMN_NAME].iloc[0]
 
     @classmethod
     def _get_teams_squads(cls):
-        teams_squads_scrapper = TeamsSquadsScrapper(team_1_name="Watford FC", team_2_name="Liverpool FC")
+        teams_squads_scrapper = TeamsSquadsScrapper(
+            team_1_name="Watford FC", team_2_name="Liverpool FC"
+        )
         return teams_squads_scrapper.get_teams_squads()
 
     @classmethod
     def _get_top_n_counted_items_from_dict(cls, dict: Dict, n: int):
-        return sorted(
-            dict.items(),
-            key=lambda t: t[1],
-            reverse=True,
-        )[:n]
+        return sorted(dict.items(), key=lambda t: t[1], reverse=True,)[:n]
 
     @classmethod
     def _tokenize_tweets_corpus(cls, corpus: List[str]) -> List[List[str]]:

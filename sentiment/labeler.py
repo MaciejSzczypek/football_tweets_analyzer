@@ -18,7 +18,9 @@ class Labeler:
         analyser = SentimentIntensityAnalyzer()
         labeled_df = cls._get_data_sentiment(
             df=df,
-            sentiment_polarity_calculator=lambda text: analyser.polarity_scores(text)["compound"],
+            sentiment_polarity_calculator=lambda text: analyser.polarity_scores(text)[
+                "compound"
+            ],
         )
         return labeled_df
 
@@ -27,7 +29,9 @@ class Labeler:
         analyser = TextBlob
         labeled_df = cls._get_data_sentiment(
             df=df,
-            sentiment_polarity_calculator=lambda text: analyser(text).sentiment.polarity,
+            sentiment_polarity_calculator=lambda text: analyser(
+                text
+            ).sentiment.polarity,
         )
         return labeled_df
 
@@ -35,23 +39,20 @@ class Labeler:
     def get_data_sentiment_with_sentiwordnet(cls, df: pd.DataFrame) -> pd.DataFrame:
         analyser = cls._sentiwordnet_sentiment_analyser
         labeled_df = cls._get_data_sentiment(
-            df=df,
-            sentiment_polarity_calculator=analyser,
+            df=df, sentiment_polarity_calculator=analyser,
         )
         return labeled_df
 
     @classmethod
     def _get_data_sentiment(
-        cls,
-        df: pd.DataFrame,
-        sentiment_polarity_calculator: Callable
+        cls, df: pd.DataFrame, sentiment_polarity_calculator: Callable
     ) -> pd.DataFrame:
         labeled_df = pd.DataFrame()
-        labeled_df[cls.POLARITY_COLUMN_NAME] = (
-            df[LIV_WAT_TEXT_COLUMN_NAME].apply(sentiment_polarity_calculator)
+        labeled_df[cls.POLARITY_COLUMN_NAME] = df[LIV_WAT_TEXT_COLUMN_NAME].apply(
+            sentiment_polarity_calculator
         )
-        labeled_df[cls.LABEL_COLUMN_NAME] = (
-            labeled_df[cls.POLARITY_COLUMN_NAME].apply(cls._get_label_from_sentiment_score)
+        labeled_df[cls.LABEL_COLUMN_NAME] = labeled_df[cls.POLARITY_COLUMN_NAME].apply(
+            cls._get_label_from_sentiment_score
         )
         return labeled_df
 

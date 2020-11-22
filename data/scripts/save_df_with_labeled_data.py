@@ -4,7 +4,6 @@ from data.loaders import DataLoader
 from data.scripts.common import (
     LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_RELATIVE_FILE_PATH,
     LIVERPOOL_VS_WATFORD_LABELED_RELATIVE_FILE_PATH,
-
 )
 from sentiment.labeler import Labeler
 
@@ -47,13 +46,20 @@ def save_df_with_labeled_tweets():
         }
     )
     aggregated_df.to_csv(LIVERPOOL_VS_WATFORD_LABELED_RELATIVE_FILE_PATH)
-    each_model_different_decision = (
-        aggregated_df[
-            (aggregated_df[VADER_LABEL_COLUMN_NAME] != aggregated_df[TEXTBLOB_LABEL_COLUMN_NAME])
-            & (aggregated_df[VADER_LABEL_COLUMN_NAME] != aggregated_df[SENTIWORDNET_LABEL_COLUMN_NAME])
-            & (aggregated_df[TEXTBLOB_LABEL_COLUMN_NAME] != aggregated_df[SENTIWORDNET_LABEL_COLUMN_NAME])
-            ]
-    )
+    each_model_different_decision = aggregated_df[
+        (
+            aggregated_df[VADER_LABEL_COLUMN_NAME]
+            != aggregated_df[TEXTBLOB_LABEL_COLUMN_NAME]
+        )
+        & (
+            aggregated_df[VADER_LABEL_COLUMN_NAME]
+            != aggregated_df[SENTIWORDNET_LABEL_COLUMN_NAME]
+        )
+        & (
+            aggregated_df[TEXTBLOB_LABEL_COLUMN_NAME]
+            != aggregated_df[SENTIWORDNET_LABEL_COLUMN_NAME]
+        )
+    ]
     print(len(each_model_different_decision) / len(aggregated_df))
 
     # print(len(aggregated_df[aggregated_df[VADER_LABEL_COLUMN_NAME] == aggregated_df[TEXTBLOB_LABEL_COLUMN_NAME]])/len(aggregated_df))
