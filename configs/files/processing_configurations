@@ -1,4 +1,4 @@
-setting_1:
+analysis_without_emoticons:
   corpus:
     normalization:
       operations:
@@ -19,7 +19,28 @@ setting_1:
       sentence_tokenizer: default_sentence_tokenizer
       word_tokenizer: custom_tokenizer
 
-setting_for_tweet_cleaning:
+analysis_with_emoticons:
+  corpus:
+    normalization:
+      operations:
+        lower: true
+        remove_commas: false
+        remove_stopwords: true
+        apply_stemming: false
+        apply_lemmatization: true
+        expand_contractions: true
+        remove_special_characters: true
+        remove_emoticons: false
+        remove_hashtags: true
+        remove_links: true
+        remove_user_mentions: true
+      custom_data:
+        stopwords: null
+    tokenization:
+      sentence_tokenizer: default_sentence_tokenizer
+      word_tokenizer: custom_tokenizer
+
+setting_for_tweet_pre_cleaning:
   corpus:
     normalization:
       operations:
@@ -30,7 +51,7 @@ setting_for_tweet_cleaning:
         apply_lemmatization: false
         expand_contractions: false
         remove_special_characters: false
-        remove_emoticons: true
+        remove_emoticons: false
         remove_hashtags: false
         remove_links: true
         remove_user_mentions: true

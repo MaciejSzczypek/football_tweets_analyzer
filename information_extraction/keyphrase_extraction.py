@@ -15,7 +15,9 @@ def get_top_ngrams(normalized_corpus, ngram_length=1, ngrams_limit=10):
     tokens = word_tokenize(flattened_corpus)
     ngrams = _get_ngrams(tokens, ngram_length)
     ngrams_freq_dist = nltk.FreqDist(ngrams)
-    sorted_ngrams_fd = sorted(ngrams_freq_dist.items(), key=lambda ngram_tuple: ngram_tuple[1], reverse=True)
+    sorted_ngrams_fd = sorted(
+        ngrams_freq_dist.items(), key=lambda ngram_tuple: ngram_tuple[1], reverse=True
+    )
     sorted_ngrams = sorted_ngrams_fd[:ngrams_limit]
     sorted_ngrams = [(" ".join(text), freq) for text, freq in sorted_ngrams]
     return sorted_ngrams
@@ -63,7 +65,9 @@ def get_tfidf_weighted_keyphrases(
         dictionary.get(idx): value for doc in corpus_tfidf for idx, value in doc
     }
     weighted_phrases = sorted(
-        weighted_phrases.items(), key=lambda phrase_tuple: phrase_tuple[1], reverse=True,
+        weighted_phrases.items(),
+        key=lambda phrase_tuple: phrase_tuple[1],
+        reverse=True,
     )
     weighted_phrases = [(term, round(wt, 3)) for term, wt in weighted_phrases]
     return weighted_phrases[:top_n]
