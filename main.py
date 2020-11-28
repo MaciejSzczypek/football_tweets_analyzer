@@ -1,55 +1,26 @@
-from gensim.summarization.summarizer import summarize, summarize_corpus
-from gensim.summarization import keywords, mz_keywords
-import matplotlib.pyplot as plt
+from dataclasses import dataclass
+from typing import List
+
+import numpy as np
+import pandas as pd
+from sklearn.decomposition import NMF
+from sklearn.feature_extraction.text import TfidfVectorizer
+from summarizer import Summarizer, TransformerSummarizer
+
 from configs.config_loader import ConfigLoader
+from configs.config_schema import HyperParametersConfig
 from corpus.cleaning.duplicated_tweets_remover import DuplicatedTweetsRemover
 from corpus.corpus_transformation_pipeline import CorpusTransformer
 from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
 from data.loaders import DataLoader
-from gensim.models.lsimodel import LsiModel
-from gensim.models.ldamodel import LdaModel
-from gensim.models.ldamulticore import LdaMulticore
-from gensim import corpora
-import random
-import transformers
-import numpy as np
-from sklearn.cluster import KMeans
-from pprint import pprint
-from sklearn.preprocessing import normalize
-from pytorch_transformers import (
-    RobertaConfig,
-    RobertaModel,
-    RobertaTokenizer,
-    RobertaForSequenceClassification,
-    AutoConfig,
-    AutoModel,
-    AutoTokenizer,
-)
-import tomotopy as tp
 from data.paths import (
     LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH,
-    LIVERPOOL_VS_WATFORD_WITH_NON_ENGLISH_TWEETS_EXCLUDED_AND_RETWEETS_REMOVED_FILE_PATH,
 )
-from information_extraction.keyphrase_extraction import get_top_ngrams
-from information_extraction.text_summarization import TweetsSummarizer
 from feature_extraction.tfidf import create_df_with_tfidf_feature_vectors
 from information_extraction.facts_extractor import FactsExtractor
-from information_extraction.keyphrase_extraction import get_tfidf_weighted_keyphrases
-from typing import Callable, List
-from feature_extraction.tweet_scoring import score_tweets
-from feature_extraction.word_frequency import count_word_occurences
-import pandas as pd
-import re
-from torch import optim
-from torch import nn
+from information_extraction.keyphrase_extraction import get_top_ngrams
+from information_extraction.text_summarization import TweetsSummarizer
 from utils.printing import section_printing_decorator, new_line_appendix_decorator
-from feature_extraction.vectorizers import transform_matrix_with_count_vectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.decomposition import NMF, LatentDirichletAllocation, TruncatedSVD
-from summarizer import Summarizer, TransformerSummarizer
-import spacy
-import logging
-import sys
 
 
 def remove_df_rows(df: pd.DataFrame, rows_to_remove_indexes):
@@ -117,16 +88,17 @@ def show_summaries_generated_with_transformers(df: pd.DataFrame) -> None:
     print()
     roberta_model_name = "roberta-large"
     gpt2_model_name = "gpt2-large"
-    sample_tweets = df[LIV_WAT_TEXT_COLUMN_NAME].sample(n=7500, random_state=0)
+    sample_tweets = df[LIV_WAT_TEXT_COLUMN_NAME].sample(n=10000, random_state=0)
     min_sentence_length = 10
-    max_sentence_length = 150
-    number_of_summary_sentences = 7
+    max_sentence_length = 100
+    number_of_summary_sentences = 15
     merged_tweets = ""
     for tweet in sample_tweets:
         merged_tweets += f" {tweet}"
         if tweet[-1] not in {"?", ".", "!"}:
             merged_tweets += "."
     print("ffffff", merged_tweets[:400])
+    # todo test normalized text
     roberta_model = TransformerSummarizer(
         transformer_type="Roberta", transformer_model_key=roberta_model_name,
     )
@@ -143,15 +115,15 @@ def show_summaries_generated_with_transformers(df: pd.DataFrame) -> None:
     print(roberta_summary)
     print()
 
-    gpt_2_summary = gpt_2_model(
-        merged_tweets,
-        min_length=min_sentence_length,
-        max_length=max_sentence_length,
-        num_sentences=number_of_summary_sentences,
-    )
-    print()
-    print(gpt_2_summary)
-    print()
+    # gpt_2_summary = gpt_2_model(
+    #     merged_tweets,
+    #     min_length=min_sentence_length,
+    #     max_length=max_sentence_length,
+    #     num_sentences=number_of_summary_sentences,
+    # )
+    # print()
+    # print(gpt_2_summary)
+    # print()
 
 
 @section_printing_decorator
@@ -219,25 +191,79 @@ def show_topics_modeled_with_nmf(
     )
 
 
-# todo roberta, opengpt3
-# todo time frames
+@section_printing_decorator
+def show_sentiment_analysis_results(corpus):
+    print("6. SENTIMENT ANALYSIS")
+    print()
+    # create and train model
+    # get the best results for original data
+    # use transfer learning and compare accuracy to other dictionary based algorithms
+    # time frames with sentiment
+    # train model on
 
 
-def aggregate_tweets(
-    tweets_to_aggregate, aggregated_record_tweet_count: int = 5,
-):
-    aggregated_tweets = []
-    counter = 0
-    while True:
-        start = counter * aggregated_record_tweet_count
-        stop = (counter + 1) * aggregated_record_tweet_count
-        if stop < len(tweets_to_aggregate):
-            aggregated_tweets.append(" ".join(tweets_to_aggregate[start:stop]))
-        else:
-            aggregated_tweets.append(" ".join(tweets_to_aggregate[start:]))
-            break
-        counter += 1
-    return aggregated_tweets
+@dataclass(frozen=True)
+class DataSet:
+    initial_df: pd.DataFrame
+    normalized_tweets_as_token_lists: List[List[str]]
+    tfidf_vectorizer: TfidfVectorizer
+
+    @property
+    def normalized_tweets_as_strings(self) -> List[str]:
+        return [" ".join(tweet) for tweet in self.normalized_tweets_as_token_lists]
+
+    @property
+    def initial_tweets_array(self) -> List[str]:
+        return self.initial_df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
+
+    @property
+    def tfidf(self):
+        return self.tfidf_vectorizer.fit_transform(self.normalized_tweets_as_strings)
+
+    @property
+    def tfidf_for_aggregated_tweets(self):
+        aggregated_tweets = self._get_aggregated_tweets()
+        return self.tfidf_vectorizer.fit_transform(aggregated_tweets)
+
+    @classmethod
+    def create(
+        cls,
+        df: pd.DataFrame,
+        hyper_parameters_config: HyperParametersConfig,
+    ) -> "DataSet":
+        tweets_array = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
+        transformed_corpus = CorpusTransformer.transform_twitter_corpus(
+            corpus=tweets_array,
+            hyper_parameters_config=hyper_parameters_config,
+        )
+        df = remove_df_rows(
+            df=df,
+            rows_to_remove_indexes=transformed_corpus.indexes_of_removed_tweets,
+        )
+        tfidf_vectorizer = TfidfVectorizer(
+            token_pattern=r"\S+", stop_words="english", min_df=20, max_features=1350,
+        )
+        return cls(
+            initial_df=df,
+            normalized_tweets_as_token_lists=transformed_corpus.corpus,
+            tfidf_vectorizer=tfidf_vectorizer,
+        )
+
+    def _get_aggregated_tweets(
+        self, aggregation_factor: int = 5,
+    ) -> List[str]:
+        aggregated_tweets = []
+        counter = 0
+        while True:
+            start = counter * aggregation_factor
+            stop = (counter + 1) * aggregation_factor
+            if stop < len(self.normalized_tweets_as_strings):
+                aggregated_tweets.append(" ".join(self.normalized_tweets_as_strings[start:stop]))
+            else:
+                aggregated_tweets.append(" ".join(self.normalized_tweets_as_strings[start:]))
+                break
+            counter += 1
+        return aggregated_tweets
 
 
 def run_liverpool_watford_analysis():
@@ -246,65 +272,47 @@ def run_liverpool_watford_analysis():
     initial_df_with_tweet_specific_noise_removed = DataLoader.from_csv(
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
     )
-
     # data preparation
     df = DuplicatedTweetsRemover.remove_duplicated_tweets(
         initial_df_with_tweet_specific_noise_removed
     )
-    tweets = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
-    transformed_corpus_without_emoticons = CorpusTransformer.transform_twitter_corpus(
-        corpus=tweets,
+    dataset_without_emoticons = DataSet.create(
+        df=df.copy(),
         hyper_parameters_config=configs.settings["analysis_without_emoticons"],
     )
-    transformed_corpus_with_emoticons = CorpusTransformer.transform_twitter_corpus(
-        corpus=tweets,
+    dataset_with_emoticons = DataSet.create(
+        df=df.copy(),
         hyper_parameters_config=configs.settings["analysis_with_emoticons"],
     )
-    normalized_tweets_as_token_lists = transformed_corpus_without_emoticons.corpus
-    df = remove_df_rows(
-        df=df,
-        rows_to_remove_indexes=transformed_corpus_without_emoticons.indexes_of_removed_tweets,
-    )
-    tweets = df[LIV_WAT_TEXT_COLUMN_NAME].to_numpy()
-    flattened_and_normalized_tweets = []
-    normalized_tweets_as_strings = []
-    for tweet in normalized_tweets_as_token_lists:
-        flattened_and_normalized_tweets.extend(tweet)
-        normalized_tweets_as_strings.append(" ".join(tweet))
-    tfidf_vectorizer = TfidfVectorizer(
-        token_pattern=r"\S+", stop_words="english", min_df=20, max_features=1350,
-    )
-    tfidf = tfidf_vectorizer.fit_transform(normalized_tweets_as_strings)
-    aggregated_tweets = aggregate_tweets(
-        tweets_to_aggregate=normalized_tweets_as_strings,
-    )
-    tfidf_aggregated_tweets = tfidf_vectorizer.fit_transform(aggregated_tweets)
 
     # top n-grams
-    # show_top_ngrams(corpus=normalized_tweets_as_token_lists)
+    # show_top_ngrams(corpus=dataset_without_emoticons.normalized_tweets_as_token_lists)
 
     # facts extraction
-    # show_basic_facts(corpus=tweets)
+    # show_basic_facts(corpus=dataset_without_emoticons.initial_tweets_array)
 
     # summarization
     # show_most_relevant_sentences(
-    #     normalized_tweets_as_strings=normalized_tweets_as_strings,
-    #     df_before_transformation=df,
-    #     sentences=normalized_tweets_as_token_lists,
+    #     normalized_tweets_as_strings=dataset_without_emoticons.normalized_tweets_as_strings,
+    #     df_before_transformation=dataset_without_emoticons.initial_df,
+    #     sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
     # )
-    # show_summaries_generated_with_transformers(df)
+    show_summaries_generated_with_transformers(dataset_without_emoticons.initial_df)
 
     # topic modeling
-    show_topics_modeled_with_nmf(
-        tfidf=tfidf,
-        original_tweets=tweets,
-        aggregated_tfidf=tfidf_aggregated_tweets,
-        tfidf_vectorizer=tfidf_vectorizer,
-    )
+    # show_topics_modeled_with_nmf(
+    #     tfidf=dataset_without_emoticons.tfidf,
+    #     original_tweets=dataset_without_emoticons.initial_tweets_array,
+    #     aggregated_tfidf=dataset_without_emoticons.tfidf_for_aggregated_tweets,
+    #     tfidf_vectorizer=dataset_without_emoticons.tfidf_vectorizer,
+    # )
 
-    # todo improve summarization
-    # todo refactor
-    # todo emotions, transfer learning
+    # sentiment analysis
+    # todo commit
+    show_sentiment_analysis_results()
+    # todo emotions, transfer learning, time frames
+    # todo word cloud
+    # todo improve summarization?
 
 
 if __name__ == "__main__":

@@ -1,16 +1,13 @@
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import pairwise_distances
-import networkx as nx
-import matplotlib.pyplot as plt
-import pandas as pd
-from typing import List
 from dataclasses import dataclass
+from typing import List
+
+import networkx as nx
+import pandas as pd
+
+from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
 from feature_extraction.document_similarity import (
     get_cosine_similarity_df_from_tfidf_matrix,
 )
-from pprint import pprint
-from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
 
 
 @dataclass
@@ -29,26 +26,6 @@ class ScoreInfoKeeper:
 class TweetsSummarizer:
     NORMALIZED_SENTENCE_COLUMN_NAME = "normalized_sentence"
     PRE_NORMALIZED_SENTENCE_COLUMN_NAME = "pre_normalized_sentence"
-
-    @classmethod
-    def generate_tweets_summary(cls, tweets, top_n_grams, threshold):
-        # count score based on ngrams approach!!!
-        sentence_count = 0
-
-        n_grams = [ngram_text for ngram_text, ngram_count in top_n_grams]
-        summary_sentences = []
-        for tweet in tweets:
-            tweet = " ".join(tweet)
-            for n_gram in n_grams:
-                if n_gram in tweet:
-                    summary_sentences.append(tweet)
-
-        # for sentence in sentences:
-        #     if sentence[:10] in sentenceValue and sentenceValue[sentence[:10]] > (threshold):
-        #         summary += " " + sentence
-        #         sentence_count += 1
-        summary = ".".join(summary_sentences)
-        return summary
 
     @classmethod
     def generate_tweets_summary_based_on_page_rank_and_random_sample(
