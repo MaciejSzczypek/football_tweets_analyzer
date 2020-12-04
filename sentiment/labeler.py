@@ -2,7 +2,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
 from typing import List, Callable
 import pandas as pd
-from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
+from data.column_names import TEXT_COLUMN_NAME
 from sentiment.labels import SentimentLabel
 from corpus.tokenizing.custom_tokenizers import CustomTokenizer
 from nltk.corpus import sentiwordnet
@@ -13,54 +13,68 @@ class Labeler:
     LABEL_COLUMN_NAME = "label"
     POLARITY_COLUMN_NAME = "polarity"
 
+    # todo create enum for all classifiers
     @classmethod
-    def get_data_sentiment_with_vader(cls, df: pd.DataFrame) -> pd.DataFrame:
+    def get_data_sentiment_with_vader(
+            cls, df: pd.DataFrame, polarity_absolute_threshold: float = 0.08
+    ) -> pd.DataFrame:
         analyser = SentimentIntensityAnalyzer()
         labeled_df = cls._get_data_sentiment(
             df=df,
             sentiment_polarity_calculator=lambda text: analyser.polarity_scores(text)[
                 "compound"
             ],
+            polarity_absolute_threshold=polarity_absolute_threshold,
         )
         return labeled_df
 
     @classmethod
-    def get_data_sentiment_with_text_blob(cls, df: pd.DataFrame) -> pd.DataFrame:
+    def get_data_sentiment_with_text_blob(
+            cls, df: pd.DataFrame, polarity_absolute_threshold: float = 0.05
+    ) -> pd.DataFrame:
         analyser = TextBlob
         labeled_df = cls._get_data_sentiment(
             df=df,
-            sentiment_polarity_calculator=lambda text: analyser(
-                text
-            ).sentiment.polarity,
+            sentiment_polarity_calculator=lambda text: analyser(text).sentiment.polarity,
+            polarity_absolute_threshold=polarity_absolute_threshold,
         )
         return labeled_df
 
     @classmethod
-    def get_data_sentiment_with_sentiwordnet(cls, df: pd.DataFrame) -> pd.DataFrame:
+    def get_data_sentiment_with_sentiwordnet(
+            cls, df: pd.DataFrame, polarity_absolute_threshold: float = 0.08
+    ) -> pd.DataFrame:
         analyser = cls._sentiwordnet_sentiment_analyser
         labeled_df = cls._get_data_sentiment(
-            df=df, sentiment_polarity_calculator=analyser,
+            df=df,
+            sentiment_polarity_calculator=analyser,
+            polarity_absolute_threshold=polarity_absolute_threshold,
         )
         return labeled_df
 
     @classmethod
     def _get_data_sentiment(
-        cls, df: pd.DataFrame, sentiment_polarity_calculator: Callable
+        cls,
+        df: pd.DataFrame,
+        sentiment_polarity_calculator: Callable,
+        polarity_absolute_threshold: float
     ) -> pd.DataFrame:
         labeled_df = pd.DataFrame()
-        labeled_df[cls.POLARITY_COLUMN_NAME] = df[LIV_WAT_TEXT_COLUMN_NAME].apply(
+        labeled_df[cls.POLARITY_COLUMN_NAME] = df[TEXT_COLUMN_NAME].apply(
             sentiment_polarity_calculator
         )
         labeled_df[cls.LABEL_COLUMN_NAME] = labeled_df[cls.POLARITY_COLUMN_NAME].apply(
-            cls._get_label_from_sentiment_score
+            cls._get_label_from_sentiment_score, args=[polarity_absolute_threshold]
         )
         return labeled_df
 
     @classmethod
-    def _get_label_from_sentiment_score(cls, sentiment_score: int) -> int:
-        if sentiment_score >= 0.05:
+    def _get_label_from_sentiment_score(
+            cls, sentiment_score: int, polarity_absolute_threshold: float
+    ) -> int:
+        if sentiment_score >= polarity_absolute_threshold:
             return SentimentLabel.positive.value
-        elif sentiment_score <= -0.05:
+        elif sentiment_score <= -polarity_absolute_threshold:
             return SentimentLabel.negative.value
         else:
             return SentimentLabel.neutral.value

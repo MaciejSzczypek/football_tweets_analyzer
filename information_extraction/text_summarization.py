@@ -4,7 +4,7 @@ from typing import List
 import networkx as nx
 import pandas as pd
 
-from data.column_names import LIV_WAT_TEXT_COLUMN_NAME
+from data.column_names import TEXT_COLUMN_NAME
 from feature_extraction.document_similarity import (
     get_cosine_similarity_df_from_tfidf_matrix,
 )
@@ -74,7 +74,7 @@ class TweetsSummarizer:
             normalized_sentence_initial_index = ranked_sentence[index].initial_index
             pre_normalized_sentence = df_before_transformation.iloc[
                 normalized_sentence_initial_index
-            ][LIV_WAT_TEXT_COLUMN_NAME]
+            ][TEXT_COLUMN_NAME]
 
             top_tweets[cls.NORMALIZED_SENTENCE_COLUMN_NAME].append(normalized_sentence)
             top_tweets[cls.PRE_NORMALIZED_SENTENCE_COLUMN_NAME].append(

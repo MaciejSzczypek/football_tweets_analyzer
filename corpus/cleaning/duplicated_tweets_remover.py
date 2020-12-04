@@ -1,5 +1,5 @@
 import pandas as pd
-from data.column_names import LIV_WAT_TEXT_COLUMN_NAME, LIV_WAT_USER_NAME_COLUMN_NAME
+from data.column_names import TEXT_COLUMN_NAME, USER_NAME_COLUMN_NAME
 
 
 class DuplicatedTweetsRemover:
@@ -16,14 +16,14 @@ class DuplicatedTweetsRemover:
         cls, df: pd.DataFrame
     ) -> pd.DataFrame:
         return df.drop_duplicates(
-            [LIV_WAT_TEXT_COLUMN_NAME, LIV_WAT_USER_NAME_COLUMN_NAME], keep="first",
+            [TEXT_COLUMN_NAME, USER_NAME_COLUMN_NAME], keep="first",
         )
 
     @classmethod
     def _remove_most_likely_duplicated_tweets_without_rt_marker(
         cls, df: pd.DataFrame
     ) -> pd.DataFrame:
-        possible_duplicates = df[df.duplicated(LIV_WAT_TEXT_COLUMN_NAME)]
+        possible_duplicates = df[df.duplicated(TEXT_COLUMN_NAME)]
         possible_duplicates_check_if_they_can_be_considered_as_duplicates = possible_duplicates.apply(
             cls._tweet_can_be_considered_as_retweet, axis=1,
         )
@@ -35,6 +35,6 @@ class DuplicatedTweetsRemover:
     @classmethod
     def _tweet_can_be_considered_as_retweet(cls, row: pd.Series):
         return (
-            len(row[LIV_WAT_TEXT_COLUMN_NAME].split())
+            len(row[TEXT_COLUMN_NAME].split())
             >= cls.MINIMUM_NUMBER_OF_WORDS_TO_CONSIDER_TWEET_AS_DUPLICATE
         )

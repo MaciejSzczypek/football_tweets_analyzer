@@ -60,3 +60,24 @@ setting_for_tweet_pre_cleaning:
     tokenization:
       sentence_tokenizer: null
       word_tokenizer: custom_tokenizer
+
+setting_for_sentiment_analysis:
+  corpus:
+    normalization:
+      operations:
+        lower: true
+        remove_commas: false
+        remove_stopwords: false
+        apply_stemming: false
+        apply_lemmatization: false
+        expand_contractions: false
+        remove_special_characters: false
+        remove_emoticons: false
+        remove_hashtags: false
+        remove_links: false
+        remove_user_mentions: false
+      custom_data:
+        stopwords: null
+    tokenization:
+      sentence_tokenizer: null
+      word_tokenizer: custom_tokenizer
