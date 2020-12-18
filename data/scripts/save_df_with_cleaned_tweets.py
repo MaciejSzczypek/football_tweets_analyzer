@@ -25,9 +25,8 @@ def save_df_with_normalized_tweets():
     ]
     new_df = df.copy()
     new_df[TEXT_COLUMN_NAME] = normalized_corpus
-    new_df = new_df[new_df["text"].astype(bool)]
+    new_df = new_df[new_df[TEXT_COLUMN_NAME].astype(bool)]
     new_df.to_csv(LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH)
-    print(len(new_df))
 
 
 if __name__ == "__main__":

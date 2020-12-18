@@ -1,0 +1,85 @@
+\documentclass[12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[a4paper, width=150mm,top=25mm,bottom=25mm, bindingoffset=6mm]{geometry}
+\usepackage{amsmath}
+\usepackage[polish]{babel}
+\usepackage{polski}
+\usepackage{indentfirst}
+\setlength\parindent{2em}
+\setlength{\parskip}{1em}
+\newcommand{\sectionbreak}{\clearpage}
+
+\renewcommand{\contentsname}{Spis treści}
+\renewcommand{\chaptername}{Rozdział}
+
+
+
+\begin{document}
+\begin{titlepage}
+    \begin{center}
+		\includegraphics[width=14cm, height=2cm]{pictures/logo_pjatk.png} \\
+		[15mm]
+		\large{\bfseries Wydział Informatyki}\\
+		[15mm]
+		\large{\bfseries Katedra Systemów Inteligentnych, Algorytmiki i Matematyki}\\
+		[5mm]
+		\large Specjalizacja Data Science \\
+		[15mm]
+		\large{\bfseries Maciej Szczypek} \\
+		\large Nr albumu 20092 \\
+		[10mm]
+		\huge{\bfseries Zastosowanie technik uczenia maszynowego i przetwarzania języka naturalnego w szczegółowej analizie treści o tematyce sportowej.} \\
+		[20mm]
+	\end{center}
+
+	\begin{flushright}
+		\begin{tabular}{@{}l@{}}
+		\large Praca magisterska \\
+		[5mm]
+		\textsc Promotor: dr Bartłomiej Balcerzak  \\
+		[30mm]
+		\end{tabular}
+	\end{flushright}
+
+	\begin{center}
+		\large Warszawa, Styczeń, 2021
+	\end{center}
+\end{titlepage}
+\tableofcontents
+\chapter{Wstęp}
+    \section{TODO}
+\chapter{Projekt}
+    \section{Cel i założenia projektowe}
+        \par Głównym celem niniejszego projektu jest stworzenie oprogramowania wykorzystującego szereg różnorodnych technik związanych z uczeniem maszynowym oraz przetwarzaniem języka naturalnego, umożliwiającego wykonanie szczegółowej analizy treści o tematyce sportowej.
+        \par Projektowane oprogramowanie do analizy korpusu tekstów powinno spełniać następujące wymagania funkcjonalno-użytkowe:
+            \begin{itemize}
+                \item Oprogramowanie powinno umożliwiać pozyskiwanie podstawowych statystyk dotyczących badanego testu, w tym między innymi najbardziej istotnych n-gramów i niestandardowych elementów tekstowych (emotikon, hashtagów).
+                \item Oprogramowanie powinno umożliwiać ekstrakcję podstawowych informacji na temat głównego wydarzenia omawianego w korpusie tekstów.
+                \item Oprogramowanie powinno umożliwiać generację możliwie jak najbardziej precyzyjnego podsumowania treści z korpusu oraz ekstrakcję najbardziej istotnych dla korpusu dokumentów.
+                \item Oprogramowanie powinno umożliwiać efektywne modelowanie i ekstrakcję tematów poruszanych w korpusie.
+                \item Oprogramowanie powinno z jak największą dokładnością klasyfikować dokumenty korpusu pod względem sentymentu.
+                \item Oprogramowanie powinno umożliwiać analizę i wizualizację zmiany sentymentu i tematów w kolejnych ramach czasowych.
+            \end{itemize}
+    \section{Kontekst analizowanych treści}
+        \par Korpus tekstów wykorzystywany w projekcie składa się z dokumentów ściśle związanych z konkretnym wydarzeniem sportowym. Dokładniej rzecz ujmując, dokumentami są tweet'y opublikowane do 9 godzin po zakończeniu jednego z najbardziej spektakularnych pod względem rezultatu meczów angielskiej piłkarskiej ekstraklasy z sezonu 2019/2020. Meczem tym, była rywalizacja w 28 kolejce spotkań pomiędzy klubami Watford FC i Liverpool FC z dnia 29.02.2020, która rozpoczęła się o godzinie 17:30 czasu lokalnego na stadionie Watford FC (Vicarage Road).
+        \par W ciągu 27 kolejek sezonu 19/20 klub z Liverpoolu zdobył 79 punktów, podtrzymywał niebywałą, trwającą ponad rok serię 44 ligowych meczów bez porażki, posiadał 22 punkty przewagi nad drugim w tabeli Manchesterem City i pewnie zmierzał ku mistrzostwu. Liverpool był również coraz bliżej dokonania historycznego wyczynu, a mianowicie zdobycia tytułu najlepszej drużyny w najwyższej klasie rozgrywkowej bez zaznania porażki, co do tej pory udało się jedynie drużynie Arsenal Londyn FC w sezonie 2003/2004. Dzięki temu osiągnięciu, drużynę Arsenalu z tamtego okresu określa się mianem The Invincibles (niezwyciężeni). Do wyrównania tego rekordu Liverpoolowi brakowało 11 meczów bez porażki.
+        \par Na zupełnie innym biegunie znajdowała się drużyna z Watfordu. Po 27 kolejkach zajmowali oni przedostatnie (19) miejsce w tabeli, a ich dorobek punktowy wynosił 24. Co więcej, Watford od 6 meczów kontynuował niechlubną passę niewygranych spotkań.
+        \par Niemalże nic nie wskazywało na zwycięstwo Watford'u nad Liverpool'em. Mimo to mecz zakończył się wynikiem Watford 3:0 Liverpool, a bohaterem spotkania po strzeleniu 2 bramek i zdobyciu 1 asysty został Ismaila Sarr.
+        \par Dokumenty w postaci wpisów użytkowników Tweeter'a będących reakcją na rezultat spotkania są przedmiotem poddawanym szczegółowej analizie w niniejszym projekcie, natomiast opisany powyżej kontekst i jego znajomość stanowią podstawy niezbędne do prawidłowej interpetacji uzyskiwanych wyników.
+    \section{Zbiory danych}
+        \par W projekcie wykorzystywane są dwa typy zbiorów danych: główny zbiór oraz zbiory pomocnicze. Główny zbiór danych, to zbiór który podlega kompleksowej i szczegółowej analizie, natomiast zbiory pomocnicze, to zbiory, które umożliwiają, usprawniają, lub wspomagają analizę zbioru głównego.
+        \subsection{Główny zbiór danych}
+        https://www.kaggle.com/hazemshokry/03-liverpool-vs-watford-02292020
+        \subsection{Pomocnicze zbiory danych}
+    \section{Wstępne przetwarzanie danych}
+    \section{Właściwe przetwarzanie danych}
+    \section{Ekstrakcja podstawowych informacji i faktów}
+    \newpage
+    \includegraphics[width=16cm, height=16cm]{pictures/wordcloud.png} \\
+    \newpage
+    \section{Sumaryzacja treści}
+    \section{Modelowanie tematów}
+    \section{Analiza sentymentu}
+\chapter{Podsumowanie i wnioski}
+\end{document}

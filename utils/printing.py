@@ -4,8 +4,9 @@ from typing import Callable
 def section_printing_decorator(printing_function: Callable):
     def _wrapper(*args, **kwargs):
         print("=" * 100)
-        printing_function(*args, **kwargs)
+        result = printing_function(*args, **kwargs)
         print("=" * 100)
+        return result
 
     return _wrapper
 

@@ -6,7 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from configs.config_schema import HyperParametersConfig
 from corpus.corpus_transformation_pipeline import CorpusTransformer
-from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME
+from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME, CREATED_AT_COLUMN_NAME
 from emoji import UNICODE_EMOJI, emoji_count
 import demoji
 
@@ -51,7 +51,7 @@ class DataSet:
 
     def prepare_for_nltk_classifier(
             self, convert_emojis_to_text: bool = False
-    ) -> List[Tuple[Dict[str, bool], int]]:
+    ) -> List[Tuple[Dict[str, bool], float]]:
         df = self.initial_df.copy()
         df[TEXT_COLUMN_NAME] = self.normalized_tweets_as_token_lists
         if convert_emojis_to_text:
@@ -120,7 +120,7 @@ class DataSet:
         return df[~df.index.isin(df.iloc[rows_to_remove_indexes].index)]
 
     @classmethod
-    def _prepare_nltk_training_record(cls, record: pd.Series) -> Tuple[Dict[str, bool], int]:
+    def _prepare_nltk_training_record(cls, record: pd.Series) -> Tuple[Dict[str, bool], float]:
         tokens_dict = {token: True for token in record[TEXT_COLUMN_NAME]}
         return tokens_dict, record[LABEL_COLUMN_NAME]
 
