@@ -45,11 +45,11 @@ class TeamsSquads:
 
 
 class TeamsSquadsScrapper:
-    WORLD_FOOTBALL_WEBSITE_ROOT_URL = "https://www.worldfootball.net"
-    WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_TEAMS_URL = urljoin(
-        WORLD_FOOTBALL_WEBSITE_ROOT_URL, "persons/eng-premier-league-2019-2020"
+    _WORLD_FOOTBALL_WEBSITE_ROOT_URL = "https://www.worldfootball.net"
+    _WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_TEAMS_URL = urljoin(
+        _WORLD_FOOTBALL_WEBSITE_ROOT_URL, "persons/eng-premier-league-2019-2020"
     )
-    WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_FOOTBALL_SQUAD_URL_SUFFIX = "2020/2/"
+    _WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_FOOTBALL_SQUAD_URL_SUFFIX = "2020/2/"
 
     def __init__(self, team_1_name: str, team_2_name: str) -> None:
         self._team_1_name = team_1_name
@@ -58,7 +58,7 @@ class TeamsSquadsScrapper:
 
     def get_teams_squads(self) -> TeamsSquads:
         team_keys = self._get_team_names_to_keys_mapping(
-            url=self.WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_TEAMS_URL,
+            url=self._WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_TEAMS_URL,
             team_names=self._team_names,
         )
         team_1_squad = self._get_team_squad(
@@ -72,8 +72,8 @@ class TeamsSquadsScrapper:
     @classmethod
     def _get_team_squad(cls, team_name: str, team_key: str) -> TeamSquad:
         team_squad_url = urljoin(
-            cls.WORLD_FOOTBALL_WEBSITE_ROOT_URL,
-            f"{team_key}/{cls.WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_FOOTBALL_SQUAD_URL_SUFFIX}",
+            cls._WORLD_FOOTBALL_WEBSITE_ROOT_URL,
+            f"{team_key}/{cls._WORLD_FOOTBALL_PREMIER_LEAGUE_19_20_FOOTBALL_SQUAD_URL_SUFFIX}",
         )
         page_content = cls._get_page_content(team_squad_url)
         parser = cls._get_parser(page_content)

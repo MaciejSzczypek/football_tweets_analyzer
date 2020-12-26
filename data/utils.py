@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -16,6 +16,7 @@ class DataSet:
     initial_df: pd.DataFrame
     normalized_tweets_as_token_lists: List[List[str]]
     tfidf_vectorizer: TfidfVectorizer
+    original_df: Optional[pd.DataFrame]
 
     # todo transform to lazy properties
     @property
@@ -38,6 +39,12 @@ class DataSet:
     @property
     def initial_tweets_array(self) -> List[str]:
         return self.initial_df[TEXT_COLUMN_NAME].to_numpy()
+
+    @property
+    def original_tweets_array(self) -> Optional[List[str]]:
+        print(self.initial_df["Unnamed: 0.1.1"])
+        if self.original_df is not None:
+            return self.original_df.iloc[self.initial_df["Unnamed: 0.1.1"]][TEXT_COLUMN_NAME].to_numpy()
 
     @property
     def df_with_normalized_tweets(self) -> pd.DataFrame:
@@ -79,6 +86,7 @@ class DataSet:
         df: pd.DataFrame,
         hyper_parameters_config: HyperParametersConfig,
         tfidf_vectorizer=None,
+        original_df: Optional[pd.DataFrame] = None
     ) -> "DataSet":
         tweets_array = df[TEXT_COLUMN_NAME].to_numpy()
         transformed_corpus = CorpusTransformer.transform_twitter_corpus(
@@ -97,6 +105,7 @@ class DataSet:
             initial_df=df,
             normalized_tweets_as_token_lists=transformed_corpus.corpus,
             tfidf_vectorizer=tfidf_vectorizer,
+            original_df=original_df,
         )
 
     def _get_aggregated_tweets(

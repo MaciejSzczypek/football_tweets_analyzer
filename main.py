@@ -11,6 +11,7 @@ from data.loaders import DataLoader
 from data.paths import (
     LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH,
     LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_PATH,
+    LIVERPOOL_VS_WATFORD_ORIGINAL_FILE_PATH,
 )
 import os
 import math
@@ -52,17 +53,28 @@ def print_ngrams_with_the_biggest_count(
         corpus, ngram_length=ngram_length, ngrams_limit=n_top_ngrams
     )
     print(f"Top {n_top_ngrams} {ngram_length}-grams:")
+    indexes = []
+    rows = []
     for index, ngram in enumerate(top_n_grams):
+        indexes.append(index + 1)
+        rows.append((ngram[0], ngram[1]))
         print(f"\t{index + 1}. '{ngram[0]}' [{ngram[1]}]")
+    df_ = pd.DataFrame(rows, index=indexes, columns=["N-gram", "Liczność"])
+    print(df_)
+    df_.to_csv(f"results/{ngram_length}_gram.csv")
 
 
 def print_top_words_for_all_topics(model, feature_names, n_top_words):
+    top_words_for_topics = []
     for topic_idx, topic in enumerate(model.components_):
         message = "Topic #%d: " % topic_idx
         message += " ".join(
             [feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]]
         )
         print(message)
+        top_words_for_topics.append([feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]])
+    df = pd.DataFrame(top_words_for_topics)
+    df.to_csv("results/top_words_per_topic")
     print()
 
 
@@ -70,7 +82,7 @@ def print_top_words_for_all_topics(model, feature_names, n_top_words):
 def show_top_ngrams(corpus):
     print("1. TOP N-GRAMS")
     print()
-    for i in range(1, 5):
+    for i in range(1, 6):
         print_ngrams_with_the_biggest_count(corpus=corpus, ngram_length=i)
 
 
@@ -96,10 +108,13 @@ def show_word_cloud(text):
 
 
 @section_printing_decorator
-def show_basic_facts(corpus):
+def show_basic_facts(corpus_without_emoticons, corpus_with_emoticons):
     print("2. BASIC FACTS")
     print()
-    facts_extractor = FactsExtractor(corpus=corpus)
+    facts_extractor = FactsExtractor(
+        corpus_without_emoticons=corpus_without_emoticons,
+        corpus_with_emoticons=corpus_with_emoticons,
+    )
     facts_extractor.show_basic_facts()
 
 
@@ -192,6 +207,7 @@ def show_topics_modeled_with_nmf(dataset: DataSet) -> pd.DataFrame:
         columns=["topic_value", "topic"],
     )
     tweets_with_topic_assignment.insert(loc=0, column="tweet", value=dataset.initial_tweets_array)
+    tweets_with_topic_assignment.insert(loc=1, column="original_tweet", value=dataset.original_tweets_array)
     tweets_with_topic_assignment.insert(
         loc=1, column=CREATED_AT_COLUMN_NAME, value=dataset.initial_df[CREATED_AT_COLUMN_NAME].to_numpy()
     )
@@ -213,6 +229,7 @@ def show_topics_modeled_with_nmf(dataset: DataSet) -> pd.DataFrame:
             tweets_with_topic_assignment["topic"] == topic_index
         ]
         top_topic_tweets = topic_tweets.sort_values(by="topic_value", ascending=False)[:15]
+        top_topic_tweets.to_csv(f"results/top_topic_{topic_index}.csv")
         print(top_topic_tweets)
 
     print(
@@ -1120,6 +1137,7 @@ def run_liverpool_watford_analysis():
     initial_df_with_tweet_specific_noise_removed = DataLoader.from_csv(
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
     )
+    original_df = DataLoader.from_csv(LIVERPOOL_VS_WATFORD_ORIGINAL_FILE_PATH)
     # labeled_df_for_sentiment_analysis_tests = DataLoader.from_csv(
     #     LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_PATH
     # )
@@ -1130,11 +1148,12 @@ def run_liverpool_watford_analysis():
     dataset_without_emoticons = DataSet.create(
         df=df.copy(),
         hyper_parameters_config=configs.settings["analysis_without_emoticons"],
+        original_df=original_df,
     )
-    # dataset_with_emoticons = DataSet.create(
-    #     df=df.copy(),
-    #     hyper_parameters_config=configs.settings["analysis_with_emoticons"],
-    # )
+    dataset_with_emoticons = DataSet.create(
+        df=df.copy(),
+        hyper_parameters_config=configs.settings["analysis_with_emoticons"],
+    )
     # labeled_dataset_for_sentiment_analysis_tests = DataSet.create(
     #     df=labeled_df_for_sentiment_analysis_tests,
     #     hyper_parameters_config=configs.settings[
@@ -1146,11 +1165,14 @@ def run_liverpool_watford_analysis():
     # )
 
     # top n-grams
-    show_top_ngrams(corpus=dataset_without_emoticons.normalized_tweets_as_token_lists)
-    show_word_cloud(text=dataset_without_emoticons.flat_text)
+    # show_top_ngrams(corpus_without_emoticons=dataset_without_emoticons.normalized_tweets_as_token_lists)
+    # show_word_cloud(text=dataset_without_emoticons.flat_text)
 
     # facts extraction
-    show_basic_facts(corpus=dataset_without_emoticons.initial_tweets_array)
+    # show_basic_facts(
+    #     corpus_without_emoticons=dataset_without_emoticons.initial_tweets_array,
+    #     corpus_with_emoticons=dataset_with_emoticons.initial_tweets_array,
+    # )
 
     # summarization
     # show_most_relevant_sentences(
@@ -1161,9 +1183,9 @@ def run_liverpool_watford_analysis():
     # show_summaries_generated_with_transformers(dataset_without_emoticons.initial_df)
 
     # topic modeling
-    # df_with_topic_labels = show_topics_modeled_with_nmf(
-    #     dataset=dataset_without_emoticons,
-    # )
+    df_with_topic_labels = show_topics_modeled_with_nmf(
+        dataset=dataset_without_emoticons,
+    )
 
     # summary
     # show_summaries_generated_with_transformers(dataset_without_emoticons.initial_df)
