@@ -99,7 +99,7 @@ def show_word_cloud(text):
         return f"rgb({random.randint(0, 230)}, {random.randint(0, 230)}, {random.randint(0, 230)})"
 
     wordcloud = WordCloud(
-        background_color="white", mask=mask, #color_func=color_func,
+        background_color="white", mask=mask, random_state=1 #color_func=color_func,
     ).generate(text)
 
     # Display the generated image:
@@ -139,9 +139,9 @@ def show_most_relevant_sentences(
 def show_summaries_generated_with_transformers(df: pd.DataFrame) -> None:
     print("4. TWEETS SUMMARIES GENERATED WITH TRANSFORMERS")
     print()
-    roberta_model_name = "roberta-large"
+    roberta_model_name = "roberta-base"
     gpt2_model_name = "gpt2-large"
-    sample_tweets = df[TEXT_COLUMN_NAME].sample(n=10000, random_state=0)
+    sample_tweets = df[TEXT_COLUMN_NAME].sample(n=11000, )#random_state=1)
     min_sentence_length = 10
     max_sentence_length = 100
     number_of_summary_sentences = 15
@@ -155,9 +155,9 @@ def show_summaries_generated_with_transformers(df: pd.DataFrame) -> None:
     roberta_model = TransformerSummarizer(
         transformer_type="Roberta", transformer_model_key=roberta_model_name,
     )
-    # gpt_2_model = TransformerSummarizer(
-    #     transformer_type="GPT2", transformer_model_key=gpt2_model_name
-    # )
+    gpt_2_model = TransformerSummarizer(
+        transformer_type="GPT2", transformer_model_key=gpt2_model_name
+    )
     roberta_summary = roberta_model(
         merged_tweets,
         min_length=min_sentence_length,
@@ -168,15 +168,15 @@ def show_summaries_generated_with_transformers(df: pd.DataFrame) -> None:
     print(roberta_summary)
     print()
 
-    # gpt_2_summary = gpt_2_model(
-    #     merged_tweets,
-    #     min_length=min_sentence_length,
-    #     max_length=max_sentence_length,
-    #     num_sentences=number_of_summary_sentences,
-    # )
-    # print()
-    # print(gpt_2_summary)
-    # print()
+    gpt_2_summary = gpt_2_model(
+        merged_tweets,
+        min_length=min_sentence_length,
+        max_length=max_sentence_length,
+        num_sentences=number_of_summary_sentences,
+    )
+    print()
+    print(gpt_2_summary)
+    print()
 
 
 @section_printing_decorator
@@ -228,18 +228,29 @@ def show_topics_modeled_with_nmf(dataset: DataSet) -> pd.DataFrame:
         topic_tweets = tweets_with_topic_assignment[
             tweets_with_topic_assignment["topic"] == topic_index
         ]
+        print(topic_index, "====>", len(topic_tweets))
         top_topic_tweets = topic_tweets.sort_values(by="topic_value", ascending=False)[:15]
         top_topic_tweets.to_csv(f"results/top_topic_{topic_index}.csv")
         print(top_topic_tweets)
 
     print(
-        tweets_with_topic_assignment[
+        "@@@@@",
+        len(tweets_with_topic_assignment[
             (tweets_with_topic_assignment["topic"] != 0)
             & (tweets_with_topic_assignment["topic"] != 1)
             & (tweets_with_topic_assignment["topic"] != 2)
             & (tweets_with_topic_assignment["topic"] != 3)
-        ][:10]
+        ])
     )
+    df_unassigned = tweets_with_topic_assignment[
+            (tweets_with_topic_assignment["topic"] != 0)
+            & (tweets_with_topic_assignment["topic"] != 1)
+            & (tweets_with_topic_assignment["topic"] != 2)
+            & (tweets_with_topic_assignment["topic"] != 3)
+    ][:20]
+    print(df_unassigned)
+    df_unassigned.to_csv("results/unassigned_topics_examples.csv")
+
     return tweets_with_topic_assignment
 
 
@@ -263,10 +274,24 @@ def _get_model_accuracies(original_labeled_df, model_labeled_df):
     confusion_matrix = sklearn.metrics.confusion_matrix(
         original_labeled_df["label"], model_labeled_df["label"], labels=labels,
     )
+    confusion_matrix_percentage = confusion_matrix.astype('float') / confusion_matrix.sum(axis=1)[:, np.newaxis]
     df_cm = pd.DataFrame(confusion_matrix, index=labels, columns=labels)
+    df_cm_percentage = pd.DataFrame(confusion_matrix_percentage, index=labels, columns=labels)
     sn.set(font_scale=1.4)
     cmap = sn.color_palette("rocket_r", as_cmap=True)
-    sn.heatmap(df_cm, annot=True, annot_kws={"size": 16}, cmap=cmap, fmt="d")
+    # sn.heatmap(df_cm, annot=True, annot_kws={"size": 16}, cmap=cmap, fmt="d")
+    sn.heatmap(
+        df_cm_percentage,
+        annot=True,
+        annot_kws={"size": 16},
+        cmap=cmap,
+        fmt=".2%",
+        xticklabels=["negatywne", "neutralne", "pozytywne"],
+        yticklabels=["negatywne", "neutralne", "pozytywne"],
+    )
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    plt.savefig("results/confusion_matrix_vader")
     plt.show()
 
     matching_label_rows = original_labeled_df[
@@ -997,6 +1022,34 @@ def _get_time_frames(time_series: pd.Series, time_frame_minutes_length: int) -> 
     return df_time_frames
 
 
+def _prepare_figure(
+    df: pd.DataFrame,
+    time_frames,
+    y_label: str,
+    file_name: str,
+    is_stacked_bar_plot: bool = False
+):
+    if is_stacked_bar_plot:
+        plot = df.plot.bar(stacked=True)
+    else:
+        plot = df.plot()
+    plot.set_xticks(time_frames.index)
+    plot.set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
+    plot.set_xlabel("Przedział czasowy", fontsize=15, labelpad=15)
+    plot.set_ylabel(y_label, fontsize=15, labelpad=15)
+    plot.legend(
+        loc='upper center',
+        bbox_to_anchor=(0.5, 1.15),
+        fancybox=True,
+        shadow=True,
+        ncol=4,
+        labels=["negatywne", "neutralne", "pozytywne"]
+    )
+    plt.tight_layout()
+    plot.figure.savefig(file_name)
+    plt.show()
+
+
 def _show_topic_statistics(df_topic: pd.DataFrame, time_frames, total_tweets_per_time_frame):
     df = (
         df_topic
@@ -1006,31 +1059,43 @@ def _show_topic_statistics(df_topic: pd.DataFrame, time_frames, total_tweets_per
     )
     df = df.merge(total_tweets_per_time_frame, on="time_frame")
     df["percentage"] = df["count"] / df["time_frame_count"] * 100
-    fig, axes = plt.subplots(nrows=2, ncols=2)
+    # fig, axes = plt.subplots(nrows=2, ncols=2)
     topic_count_series = {}
     topic_percentage_series = {}
     for topic in df["topic"].unique():
-        topic_name = f"topic_{int(topic)}"
+        topic_name = f"Temat {int(topic) + 1}"
         topic_count_series[topic_name] = df[df.topic == topic].set_index("time_frame")["count"]
         topic_percentage_series[topic_name] = df[df.topic == topic].set_index("time_frame")["percentage"]
 
     df_topic_count_series = pd.DataFrame(topic_count_series)
+    _prepare_figure(
+        df=df_topic_count_series,
+        time_frames=time_frames,
+        y_label="Ilość tweet'ów",
+        file_name="results/topics_absolute_linear",
+    )
     df_topic_percentage_series = pd.DataFrame(topic_percentage_series)
-    df_topic_count_series.plot(ax=axes[0, 0])
-    df_topic_percentage_series.plot(ax=axes[0, 1])
-    df_topic_count_series.plot.bar(ax=axes[1, 0], stacked=True)
-    df_topic_percentage_series.plot.bar(ax=axes[1, 1], stacked=True)
-    fig.set_figheight(14)
-    fig.set_figwidth(16)
-    axes[0, 0].set_xticks(time_frames.index)
-    axes[0, 0].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    axes[0, 1].set_xticks(time_frames.index)
-    axes[0, 1].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    axes[1, 0].set_xticks(time_frames.index)
-    axes[1, 0].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    axes[1, 1].set_xticks(time_frames.index)
-    axes[1, 1].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    plt.show()
+    _prepare_figure(
+        df=df_topic_percentage_series,
+        time_frames=time_frames,
+        y_label="Procent tweet'ów [%]",
+        file_name="results/topics_percentage_linear",
+    )
+    _prepare_figure(
+        df=df_topic_count_series,
+        time_frames=time_frames,
+        y_label="Ilość tweet'ów",
+        file_name="results/topics_absolute_bar",
+        is_stacked_bar_plot=True,
+    )
+    _prepare_figure(
+        df=df_topic_percentage_series,
+        time_frames=time_frames,
+        y_label="Procent tweet'ów [%]",
+        file_name="results/topics_percentage_bar",
+        is_stacked_bar_plot=True,
+    )
+
     print(df)
 
 
@@ -1043,7 +1108,6 @@ def _show_sentiment_statistics(df_sentiment: pd.DataFrame, time_frames, total_tw
     )
     df = df.merge(total_tweets_per_time_frame, on="time_frame")
     df["percentage"] = df["count"] / df["time_frame_count"] * 100
-    fig, axes = plt.subplots(nrows=2, ncols=2)
     sentiment_count_series = {}
     sentiment_percentage_series = {}
     for sentiment in df[LABEL_COLUMN_NAME].unique():
@@ -1052,21 +1116,32 @@ def _show_sentiment_statistics(df_sentiment: pd.DataFrame, time_frames, total_tw
 
     df_sentiment_count_series = pd.DataFrame(sentiment_count_series)
     df_sentiment_percentage_series = pd.DataFrame(sentiment_percentage_series)
-    df_sentiment_count_series.plot(ax=axes[0, 0], ylabel="count", xlabel="time frame")
-    df_sentiment_percentage_series.plot(ax=axes[0, 1], ylabel="percentage [%]", xlabel="time frame")
-    df_sentiment_count_series.plot.bar(ax=axes[1, 0], stacked=True, ylabel="count", xlabel="time frame")
-    df_sentiment_percentage_series.plot.bar(ax=axes[1, 1], stacked=True, ylabel="percentage [%]", xlabel="time frame")
-    fig.set_figheight(16)
-    fig.set_figwidth(18)
-    axes[0, 0].set_xticks(time_frames.index)
-    axes[0, 0].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    axes[0, 1].set_xticks(time_frames.index)
-    axes[0, 1].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    axes[1, 0].set_xticks(time_frames.index)
-    axes[1, 0].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    axes[1, 1].set_xticks(time_frames.index)
-    axes[1, 1].set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    plt.show()
+    _prepare_figure(
+        df=df_sentiment_count_series,
+        time_frames=time_frames,
+        y_label="Ilość tweet'ów",
+        file_name="results/sentiment_absolute_linear",
+    )
+    _prepare_figure(
+        df=df_sentiment_percentage_series,
+        time_frames=time_frames,
+        y_label="Procent tweet'ów [%]",
+        file_name="results/sentiment_percentage_linear",
+    )
+    _prepare_figure(
+        df=df_sentiment_count_series,
+        time_frames=time_frames,
+        y_label="Ilość tweet'ów",
+        file_name="results/sentiment_absolute_bar",
+        is_stacked_bar_plot=True,
+    )
+    _prepare_figure(
+        df=df_sentiment_percentage_series,
+        time_frames=time_frames,
+        y_label="Procent tweet'ów [%]",
+        file_name="results/sentiment_percentage_bar",
+        is_stacked_bar_plot=True,
+    )
     print(df)
 
 
@@ -1106,8 +1181,8 @@ def show_time_frames_analysis(
         ].index[0]
     )
     df_topic["time_frame"] = topic_time_frame_labels
-    # df_sentiment.to_csv("df_sentiment")
-    # df_topic.to_csv("df_topic")
+    df_sentiment.to_csv("df_sentiment")
+    df_topic.to_csv("df_topic")
 
     total_tweets_per_time_frame = (
         df_topic
@@ -1115,19 +1190,25 @@ def show_time_frames_analysis(
         .count()
         .reset_index(name="time_frame_count")
     )
-    total_tweets_per_time_frame.time_frame_count.plot()
+    figure = total_tweets_per_time_frame.time_frame_count.plot()
+    figure.set_xticks(time_frames.index)
+    figure.set_xlabel("Przedział czasowy", fontsize=15, labelpad=15)
+    figure.set_ylabel("Ilość tweet'ów", fontsize=15, labelpad=15)
+    figure.set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
     plt.show()
-    # _show_topic_statistics(
-    #     df_topic=df_topic,
-    #     total_tweets_per_time_frame=total_tweets_per_time_frame,
-    #     time_frames=time_frames,
-    # )
+    figure.figure.savefig("results/total_tweets_time_frame.png")
+
+    _show_topic_statistics(
+        df_topic=df_topic,
+        total_tweets_per_time_frame=total_tweets_per_time_frame,
+        time_frames=time_frames,
+    )
     _show_sentiment_statistics(
         df_sentiment=df_sentiment,
         total_tweets_per_time_frame=total_tweets_per_time_frame,
         time_frames=time_frames,
     )
-    # print(df_sentiment)
+    print(df_sentiment)
     # print(time_frames)
 
 
@@ -1138,9 +1219,9 @@ def run_liverpool_watford_analysis():
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
     )
     original_df = DataLoader.from_csv(LIVERPOOL_VS_WATFORD_ORIGINAL_FILE_PATH)
-    # labeled_df_for_sentiment_analysis_tests = DataLoader.from_csv(
-    #     LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_PATH
-    # )
+    labeled_df_for_sentiment_analysis_tests = DataLoader.from_csv(
+        LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_PATH
+    )
     # data preparation
     df = DuplicatedTweetsRemover.remove_duplicated_tweets(
         initial_df_with_tweet_specific_noise_removed
@@ -1154,58 +1235,50 @@ def run_liverpool_watford_analysis():
         df=df.copy(),
         hyper_parameters_config=configs.settings["analysis_with_emoticons"],
     )
-    # labeled_dataset_for_sentiment_analysis_tests = DataSet.create(
-    #     df=labeled_df_for_sentiment_analysis_tests,
-    #     hyper_parameters_config=configs.settings[
-    #         "setting_for_sentiment_analysis"
-    #     ],
-    #     tfidf_vectorizer=TfidfVectorizer(
-    #         token_pattern=r"\S+", stop_words="english",
-    #     )
-    # )
+    labeled_dataset_for_sentiment_analysis_tests = DataSet.create(
+        df=labeled_df_for_sentiment_analysis_tests,
+        hyper_parameters_config=configs.settings[
+            "setting_for_sentiment_analysis"
+        ],
+        tfidf_vectorizer=TfidfVectorizer(
+            token_pattern=r"\S+", stop_words="english",
+        )
+    )
 
     # top n-grams
-    # show_top_ngrams(corpus_without_emoticons=dataset_without_emoticons.normalized_tweets_as_token_lists)
-    # show_word_cloud(text=dataset_without_emoticons.flat_text)
+    show_top_ngrams(corpus_without_emoticons=dataset_without_emoticons.normalized_tweets_as_token_lists)
+    show_word_cloud(text=dataset_without_emoticons.flat_text)
 
     # facts extraction
-    # show_basic_facts(
-    #     corpus_without_emoticons=dataset_without_emoticons.initial_tweets_array,
-    #     corpus_with_emoticons=dataset_with_emoticons.initial_tweets_array,
-    # )
-
+    show_basic_facts(
+        corpus_without_emoticons=dataset_without_emoticons.initial_tweets_array,
+        corpus_with_emoticons=dataset_with_emoticons.initial_tweets_array,
+    )
     # summarization
-    # show_most_relevant_sentences(
-    #     normalized_tweets_as_strings=dataset_without_emoticons.normalized_tweets_as_strings,
-    #     df_before_transformation=dataset_without_emoticons.initial_df,
-    #     sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
-    # )
-    # show_summaries_generated_with_transformers(dataset_without_emoticons.initial_df)
-
+    show_most_relevant_sentences(
+        normalized_tweets_as_strings=dataset_without_emoticons.normalized_tweets_as_strings,
+        df_before_transformation=dataset_without_emoticons.initial_df,
+        sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
+    )
+    show_summaries_generated_with_transformers(dataset_without_emoticons.df_with_normalized_tweets)
     # topic modeling
     df_with_topic_labels = show_topics_modeled_with_nmf(
         dataset=dataset_without_emoticons,
     )
-
-    # summary
-    # show_summaries_generated_with_transformers(dataset_without_emoticons.initial_df)
-
-    # pd.set_option('display.max_rows', None)
-    # pd.set_option('display.max_columns', None)
     # sentiment analysis
-    # show_sentiment_analysis_accuracies_results(
-    #     dataset=labeled_dataset_for_sentiment_analysis_tests,
-    #     accuracies_df_path_to_load="/home/maciej_szczypek/PJATK/master_thesis/python_project/data/auxiliary_files/accuracies_df.csv",
-    #     # output_accuracies_df_path="/home/maciej_szczypek/PJATK/master_thesis/python_project/data/auxiliary_files/accuracies_df.csv",
-    # )
+    show_sentiment_analysis_accuracies_results(
+        dataset=labeled_dataset_for_sentiment_analysis_tests,
+        accuracies_df_path_to_load="/home/maciej_szczypek/PJATK/master_thesis/python_project/data/auxiliary_files/accuracies_df.csv",
+        # output_accuracies_df_path="/home/maciej_szczypek/PJATK/master_thesis/python_project/data/auxiliary_files/accuracies_df.csv",
+    )
 
     # time frame analysis
-    # show_time_frames_analysis(
-    #     # df_sentiment=dataset_with_emoticons.initial_df_with_emojis_converted_to_text,
-    #     # df_topic=df_with_topic_labels,
-    #     df_sentiment=pd.read_csv("df_sentiment"),
-    #     df_topic=pd.read_csv("df_topic"),
-    # )
+    show_time_frames_analysis(
+        # df_sentiment=dataset_with_emoticons.initial_df_with_emojis_converted_to_text,
+        # df_topic=df_with_topic_labels,
+        df_sentiment=pd.read_csv("df_sentiment"),
+        df_topic=pd.read_csv("df_topic"),
+    )
 
 
 if __name__ == "__main__":
