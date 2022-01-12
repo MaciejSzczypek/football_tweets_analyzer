@@ -3,6 +3,7 @@ import os
 # region common
 DATA_DIR_NAME = "data"
 DATA_FILES_DIR_NAME = "source_files"
+FINAL_FILES_DIR_NAME = "final_files"
 # endregion common
 
 # region liverpool watford
@@ -44,6 +45,13 @@ LIVERPOOL_VS_WATFORD_RANDOMLY_SELECTED_FILE_PATH = os.path.join(
     DATA_DIR_NAME,
     DATA_FILES_DIR_NAME,
     LIVERPOOL_VS_WATFORD_RANDOMLY_SELECTED_FILE_NAME,
+)
+LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_NAME = (
+    "liverpool_vs_watford_test_batch_fully_tagged")
+LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_PATH = os.path.join(
+    DATA_DIR_NAME,
+    FINAL_FILES_DIR_NAME,
+    LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_NAME,
 )
 # endregion liverpool watford
 
