@@ -1,24 +1,22 @@
-from string import Template
-from data.paths import ENGLISH_CLUBS_FILE_PATH
-from data.loaders import DataLoader
+import re
+from typing import Dict, Tuple, List
+
+import pandas as pd
+from emoji import UNICODE_EMOJI, demojize
+from nltk.tag.stanford import StanfordNERTagger
+
+from corpus.cleaning.constants import NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX
+from corpus.tokenizing.custom_tokenizers import CustomTokenizer
 from data.column_names import (
     ENGLISH_CLUBS_KEY_COLUMN_NAME,
     ENGLISH_CLUBS_NAME_COLUMN_NAME,
 )
-from typing import Dict, Optional, Tuple, Set, FrozenSet, List
-from corpus.cleaning.constants import NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX
-from nltk.tag.stanford import StanfordNERTagger
-import re
-import time
-import nltk
-import pprint
-from collections import OrderedDict
+from data.loaders import DataLoader
+from data.paths import ENGLISH_CLUBS_FILE_PATH
 from scraping.scrappers import TeamsSquadsScrapper
-from corpus.tokenizing.custom_tokenizers import CustomTokenizer
-import re
 from utils.printing import section_printing_decorator, new_line_appendix_decorator
-import pandas as pd
-from emoji import UNICODE_EMOJI, emoji_count, EMOJI_UNICODE, demojize
+
+
 # todo update pre-trained model version
 
 
@@ -252,3 +250,14 @@ class FactsExtractor:
     @classmethod
     def _tokenize_tweets_corpus(cls, corpus: List[str]) -> List[List[str]]:
         return [CustomTokenizer.tokenize(tweet) for tweet in corpus]
+
+
+@section_printing_decorator
+def show_basic_facts(corpus_without_emoticons, corpus_with_emoticons):
+    print("2. BASIC FACTS")
+    print()
+    facts_extractor = FactsExtractor(
+        corpus_without_emoticons=corpus_without_emoticons,
+        corpus_with_emoticons=corpus_with_emoticons,
+    )
+    facts_extractor.show_basic_facts()

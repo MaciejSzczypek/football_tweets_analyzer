@@ -1,7 +1,11 @@
 import itertools
+
 import nltk
-from nltk import word_tokenize
+import pandas as pd
 from gensim import corpora, models
+from nltk import word_tokenize
+
+from utils.printing import section_printing_decorator, new_line_appendix_decorator
 
 STOPWORDS = nltk.corpus.stopwords.words("english")
 
@@ -71,3 +75,44 @@ def get_tfidf_weighted_keyphrases(
     )
     weighted_phrases = [(term, round(wt, 3)) for term, wt in weighted_phrases]
     return weighted_phrases[:top_n]
+
+
+@new_line_appendix_decorator
+def print_ngrams_with_the_biggest_count(
+    corpus, ngram_length: int, n_top_ngrams: int = 10
+):
+    top_n_grams = get_top_ngrams(
+        corpus, ngram_length=ngram_length, ngrams_limit=n_top_ngrams
+    )
+    print(f"Top {n_top_ngrams} {ngram_length}-grams:")
+    indexes = []
+    rows = []
+    for index, ngram in enumerate(top_n_grams):
+        indexes.append(index + 1)
+        rows.append((ngram[0], ngram[1]))
+        print(f"\t{index + 1}. '{ngram[0]}' [{ngram[1]}]")
+    df_ = pd.DataFrame(rows, index=indexes, columns=["N-gram", "Liczność"])
+    print(df_)
+    df_.to_csv(f"results/{ngram_length}_gram.csv")
+
+
+@section_printing_decorator
+def show_top_ngrams(corpus):
+    print("1. TOP N-GRAMS")
+    print()
+    for i in range(1, 6):
+        print_ngrams_with_the_biggest_count(corpus=corpus, ngram_length=i)
+
+
+def print_top_words_for_all_topics(model, feature_names, n_top_words):
+    top_words_for_topics = []
+    for topic_idx, topic in enumerate(model.components_):
+        message = "Topic #%d: " % topic_idx
+        message += " ".join(
+            [feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]]
+        )
+        print(message)
+        top_words_for_topics.append([feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]])
+    df = pd.DataFrame(top_words_for_topics)
+    df.to_csv("results/top_words_per_topic")
+    print()
