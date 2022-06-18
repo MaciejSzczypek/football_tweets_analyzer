@@ -34,8 +34,8 @@ class TweetsSummarizer:
         tfidf_tweets: pd.DataFrame,
         df_before_transformation: pd.DataFrame,
         sentences: List[List[str]],
+        random_batch_size: int,
         top_n_tweets: int = 10,
-        random_batch_size: int = 28000,
     ):
         random_indexes = tfidf_tweets.sample(n=random_batch_size, random_state=1).index
         tfidf_tweets_random_batch = tfidf_tweets[
@@ -94,16 +94,19 @@ def show_most_relevant_sentences(
     normalized_tweets_as_strings: List[str],
     df_before_transformation: pd.DataFrame,
     sentences: List[List[str]],
+    maximum_number_of_features: int = 100,
+    random_batch_size: int = 28_000,
 ):
     print("3. MOST RELEVANT TWEETS")
     print()
     tfidf_df = create_df_with_tfidf_feature_vectors(
-        corpus=normalized_tweets_as_strings, maximum_number_of_features=100,
+        corpus=normalized_tweets_as_strings, maximum_number_of_features=maximum_number_of_features,
     )
     TweetsSummarizer.generate_tweets_summary_based_on_page_rank_and_random_sample(
         tfidf_tweets=tfidf_df,
         df_before_transformation=df_before_transformation,
         sentences=sentences,
+        random_batch_size=random_batch_size
     )
 
 
@@ -112,7 +115,7 @@ def show_summaries_generated_with_transformers(df: pd.DataFrame) -> None:
     print()
     roberta_model_name = "roberta-base"
     gpt2_model_name = "gpt2-large"
-    sample_tweets = df[TEXT_COLUMN_NAME].sample(n=11000, )#random_state=1)
+    sample_tweets = df[TEXT_COLUMN_NAME].sample(n=5000, )# n=11000 bylo na pracy#random_state=1)
     min_sentence_length = 10
     max_sentence_length = 100
     number_of_summary_sentences = 15

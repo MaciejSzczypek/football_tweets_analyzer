@@ -12,9 +12,11 @@ class TweetsFilterer:
 
     @classmethod
     def filter_out_tweets_with_invalid_language_text(
-        cls, df: pd.DataFrame
+        cls, df: pd.DataFrame, language_column_name: str = None,
     ) -> pd.DataFrame:
-        return df[df.apply(cls._tweet_contains_valid_text, axis=1)]
+        if not language_column_name:
+            return df[df.apply(cls._tweet_contains_valid_text, axis=1)]
+        return df[df[language_column_name] == "en"]
 
     @classmethod
     def filter_out_retweets(cls, df: pd.DataFrame) -> pd.DataFrame:
@@ -27,6 +29,8 @@ class TweetsFilterer:
             return cls._text_is_written_in_english(text)
         except lang_detect_exception.LangDetectException:
             return cls._text_contains_emojis(text)
+        except TypeError:
+            return False
 
     @classmethod
     def _text_is_written_in_english(cls, text: str) -> bool:
@@ -47,4 +51,4 @@ class TweetsFilterer:
 
     @classmethod
     def _get_text_from_tweet(cls, tweet: pd.Series) -> str:
-        return tweet[TEXT_COLUMN_NAME]
+        return str(tweet[TEXT_COLUMN_NAME])

@@ -82,9 +82,10 @@ def _load_datasets(
         file_path: str,
         text_column_name: str,
         label_column_name: str,
-        sentiment_label_conversion_map: Optional[Dict[Any, int]]
+        sentiment_label_conversion_map: Optional[Dict[Any, int]],
+        config_file_path: str,
 ) -> Tuple[DataSet, DataSet]:
-    configs = ConfigLoader.load()
+    configs = ConfigLoader.load(config_file_path)
     df = pd.read_csv(file_path)
     df = df.rename(
         columns={
@@ -115,9 +116,10 @@ def _load_tfidf_datasets(
         label_column_name: str,
         main_test_dataset: DataSet,
         convert_emojis_to_text: bool,
-        sentiment_label_conversion_map: Optional[Dict[Any, int]]
+        sentiment_label_conversion_map: Optional[Dict[Any, int]],
+        config_file_path: str,
 ):
-    configs = ConfigLoader.load()
+    configs = ConfigLoader.load(config_file_path)
     df = pd.read_csv(file_path)
     df = df.rename(
         columns={
@@ -640,6 +642,7 @@ def test_different_models_for_dataset(
 def calculate_trained_models_accuracies(
         dataset: DataSet,
         transfer_learning_datasets_info: List[TransferLearningDataSetInfo],
+        config_file_path: str,
 ):
     dataframes = []
     dataframes_keys = []
@@ -652,6 +655,7 @@ def calculate_trained_models_accuracies(
             text_column_name=tl_dataset_info.text_column_name,
             label_column_name=tl_dataset_info.label_column_name,
             sentiment_label_conversion_map=tl_dataset_info.sentiment_label_conversion_map,
+            config_file_path=config_file_path,
         )
         x_train, x_test, x_main, y_train, y_test = _load_tfidf_datasets(
             file_path=tl_dataset_info.path,
@@ -660,6 +664,7 @@ def calculate_trained_models_accuracies(
             main_test_dataset=dataset,
             sentiment_label_conversion_map=tl_dataset_info.sentiment_label_conversion_map,
             convert_emojis_to_text=convert_emojis_to_text,
+            config_file_path=config_file_path,
         )
         tl_dataset = TransferLearningDataSet(
             train_data_nltk=train_dataset,
@@ -691,6 +696,7 @@ def calculate_trained_models_accuracies(
 @section_printing_decorator
 def show_sentiment_analysis_accuracies_results(
         dataset: DataSet,
+        config_file_path: str,
         accuracies_df_path_to_load: Optional[str] = None,
         output_accuracies_df_path: Optional[str] = None,
 ):
@@ -712,6 +718,7 @@ def show_sentiment_analysis_accuracies_results(
         accuracies_df = calculate_trained_models_accuracies(
             dataset=dataset,
             transfer_learning_datasets_info=TRANSFER_LEARNING_DATASETS_INFO,
+            config_file_path=config_file_path,
         )
         if output_accuracies_df_path:
             accuracies_df.to_csv(

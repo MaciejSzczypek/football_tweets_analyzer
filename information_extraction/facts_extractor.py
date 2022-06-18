@@ -2,17 +2,17 @@ import re
 from typing import Dict, Tuple, List
 
 import pandas as pd
-from emoji import UNICODE_EMOJI, demojize
+from emoji import demojize, UNICODE_EMOJI
 from nltk.tag.stanford import StanfordNERTagger
 
-from corpus.cleaning.constants import NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX
+from corpus.cleaning.constants import NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX, NORMALIZED_FOOTBALL_RESULT_FORMAT_REGEX
 from corpus.tokenizing.custom_tokenizers import CustomTokenizer
 from data.column_names import (
-    ENGLISH_CLUBS_KEY_COLUMN_NAME,
-    ENGLISH_CLUBS_NAME_COLUMN_NAME,
+    CLUBS_KEY_COLUMN_NAME,
+    CLUBS_NAME_COLUMN_NAME,
 )
 from data.loaders import DataLoader
-from data.paths import ENGLISH_CLUBS_FILE_PATH
+from data.paths import ENGLISH_CLUBS_FILE_PATH, SPANISH_CLUBS_FILE_PATH
 from scraping.scrappers import TeamsSquadsScrapper
 from utils.printing import section_printing_decorator, new_line_appendix_decorator
 
@@ -31,12 +31,17 @@ class FactsExtractor:
     QUESTION_MOST_POPULAR_EMOTICONS = "What are the most popular emoticons?"
 
     def __init__(
-            self, corpus_without_emoticons: List[str], corpus_with_emoticons: List[str],
+        self,
+        corpus_without_emoticons: List[str],
+        corpus_with_emoticons: List[str],
+        n_latest_tweets_used_for_result_collection: int,
     ) -> None:
         self._corpus_without_emoticons = self._tokenize_tweets_corpus(corpus_without_emoticons)
         self._corpus_with_emoticons = corpus_with_emoticons
         self._premier_league_teams = DataLoader.from_csv(ENGLISH_CLUBS_FILE_PATH)
-        self._team_keys = set(self._premier_league_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME])
+        self._primiera_division_teams = DataLoader.from_csv(SPANISH_CLUBS_FILE_PATH)
+        self._premier_league_team_keys = set(self._premier_league_teams[CLUBS_KEY_COLUMN_NAME])
+        self._primiera_division_team_keys = set(self._primiera_division_teams[CLUBS_KEY_COLUMN_NAME])
         self._tagger = StanfordNERTagger(
             "pretrained_models/stanford-ner-2014-08-27/classifiers/english.all.3class.distsim.crf.ser.gz",
             "pretrained_models/stanford-ner-2014-08-27/stanford-ner-3.4.1.jar",
@@ -46,7 +51,7 @@ class FactsExtractor:
         self._persons_occurrences = {}
         self._hashtag_occurrences = {}
         self._emoticons_occurrences = {}
-        self._add_all_simple_facts_related_occurrences()
+        self._add_all_simple_facts_related_occurrences(n_latest_tweets_used_for_result_collection)
         self._add_all_person_occurrences()
 
     def show_basic_facts(self):
@@ -56,18 +61,18 @@ class FactsExtractor:
         self._print_10_most_popular_hashtags()
         self._print_10_most_popular_emoticons()
 
-    def _add_all_simple_facts_related_occurrences(self):
-        for tweet in self._corpus_without_emoticons:
+    def _add_all_simple_facts_related_occurrences(self, n_latest_tweets_used_for_result_collection):
+        range_of_tweets_for_result_collection = range(
+            len(self._corpus_without_emoticons) - n_latest_tweets_used_for_result_collection
+            if n_latest_tweets_used_for_result_collection else 0,
+            len(self._corpus_without_emoticons)
+        )
+        for tweet_index, tweet in enumerate(self._corpus_without_emoticons):
             previous_token_value = None
+            if tweet_index in range_of_tweets_for_result_collection:
+                self._add_potential_match_result_occurrence(tweet)
             for token_index, token in enumerate(tweet):
                 token = token.lower()
-                next_token_index = token_index + 1
-                if next_token_index < len(tweet):
-                    self._add_potential_match_result_occurrence(
-                        first_token=previous_token_value,
-                        second_token=token,
-                        third_token=tweet[next_token_index].lower(),
-                    )
                 self._add_potential_team_occurrence(previous_token_value, token)
                 self._add_potential_hashtag_occurrence(token)
                 previous_token_value = token
@@ -174,7 +179,7 @@ class FactsExtractor:
 
     def _get_match_result(self) -> Tuple[str, str, str]:
         scores_sorted_by_occurrence = sorted(
-            self._score_occurrences.items(), key=lambda score: score[1], reverse=True
+            self._score_occurrences.items(), key=lambda score_: score_[1], reverse=True
         )
         most_frequent_score = scores_sorted_by_occurrence[0][0]
         team_1, score, team_2 = most_frequent_score.split()
@@ -190,24 +195,46 @@ class FactsExtractor:
             if cls.PERSON_TAG in {token_with_tag[1] for token_with_tag in tweet}
         ]
 
-    def _add_potential_match_result_occurrence(
-        self, first_token: str, second_token: str, third_token: str
-    ):
-        if not first_token:
+    def _add_potential_match_result_occurrence(self, tweet: List[str]):
+        tweet_text = " ".join(tweet)
+        found_result = re.search(NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX, tweet_text)
+        if not found_result:
             return
-        concatenated_tokens = f"{first_token} {second_token} {third_token}"
-        if re.match(
-            NORMALIZED_FOOTBALL_RESULT_WITH_TEAMS_FORMAT_REGEX, concatenated_tokens
-        ):
-            if self._score_occurrences.get(concatenated_tokens):
-                self._score_occurrences[concatenated_tokens] += 1
-            else:
-                self._score_occurrences[concatenated_tokens] = 1
+        tweet = [token.lower() for token in tweet]
+        tweet_text = " ".join(tweet)
+        result = re.findall(NORMALIZED_FOOTBALL_RESULT_FORMAT_REGEX, tweet_text)[0]
+        result_index = tweet.index(result)
+        n_minus_2_token = tweet[result_index - 2] if result_index >= 2 else None
+        n_minus_1_token = tweet[result_index - 1]
+        n_plus_1_token = tweet[result_index + 1]
+        n_plus_2_token = tweet[result_index + 2] if (len(tweet) - result_index - 1 >= 2) else None
+        team_1 = self._get_proper_club_key(first_token=n_minus_2_token, second_token=n_minus_1_token, left_side_of_result=True)
+        team_2 = self._get_proper_club_key(first_token=n_plus_1_token, second_token=n_plus_2_token, left_side_of_result=False)
+        standardized_result = f"{team_1} {result} {team_2}"
+        occurrence_score = self._score_occurrences.get(standardized_result, 0)
+        self._score_occurrences[standardized_result] = occurrence_score + 1
+
+    def _get_proper_club_key(self, first_token: str, second_token: str, left_side_of_result: bool):
+        joined_tokens = f"{first_token}{second_token}"
+        token_closer_to_result = second_token if left_side_of_result else first_token
+        token_further_to_result = first_token if left_side_of_result else second_token
+        if token_closer_to_result in self._premier_league_team_keys:
+            return token_closer_to_result
+        elif token_further_to_result and joined_tokens in self._premier_league_team_keys:
+            return joined_tokens
+        elif token_closer_to_result in self._primiera_division_team_keys:
+            return token_closer_to_result
+        elif token_further_to_result and joined_tokens in self._primiera_division_team_keys:
+            return joined_tokens
 
     def _add_potential_team_occurrence(self, first_token: str, second_token: str):
-        if second_token in self._team_keys:
+        if second_token in self._premier_league_team_keys:
             self._add_team_occurrence(team_key=second_token)
-        elif first_token and f"{first_token}{second_token}" in self._team_keys:
+        elif first_token and f"{first_token}{second_token}" in self._premier_league_team_keys:
+            self._add_team_occurrence(team_key=f"{first_token}{second_token}")
+        elif second_token in self._primiera_division_team_keys:
+            self._add_team_occurrence(team_key=second_token)
+        elif first_token and f"{first_token}{second_token}" in self._primiera_division_team_keys:
             self._add_team_occurrence(team_key=f"{first_token}{second_token}")
 
     def _add_team_occurrence(self, team_key: str):
@@ -225,16 +252,21 @@ class FactsExtractor:
 
     def _add_potential_emoticon_occurrence(self, character: str):
         if character in UNICODE_EMOJI:
-            print(f"|{character}|", len(character), character.encode('unicode-escape'))
+            # print(f"|{character}|", len(character), character.encode('unicode-escape'))
             if self._emoticons_occurrences.get(character.encode('unicode-escape')):
                 self._emoticons_occurrences[character.encode('unicode-escape')] += 1
             else:
                 self._emoticons_occurrences[character.encode('unicode-escape')] = 1
 
     def _get_club_name_from_club_key(self, key):
-        return self._premier_league_teams[
-            self._premier_league_teams[ENGLISH_CLUBS_KEY_COLUMN_NAME] == key
-        ][ENGLISH_CLUBS_NAME_COLUMN_NAME].iloc[0]
+        if key in self._premier_league_team_keys:
+            return self._premier_league_teams[
+                self._premier_league_teams[CLUBS_KEY_COLUMN_NAME] == key
+                ][CLUBS_NAME_COLUMN_NAME].iloc[0]
+        elif key in self._primiera_division_team_keys:
+            return self._primiera_division_teams[
+                self._primiera_division_teams[CLUBS_KEY_COLUMN_NAME] == key
+                ][CLUBS_NAME_COLUMN_NAME].iloc[0]
 
     @classmethod
     def _get_teams_squads(cls):
@@ -253,11 +285,16 @@ class FactsExtractor:
 
 
 @section_printing_decorator
-def show_basic_facts(corpus_without_emoticons, corpus_with_emoticons):
+def show_basic_facts(
+    corpus_without_emoticons,
+    corpus_with_emoticons,
+    n_latest_tweets_used_for_result_collection: int = None,
+):
     print("2. BASIC FACTS")
     print()
     facts_extractor = FactsExtractor(
         corpus_without_emoticons=corpus_without_emoticons,
         corpus_with_emoticons=corpus_with_emoticons,
+        n_latest_tweets_used_for_result_collection=n_latest_tweets_used_for_result_collection,
     )
     facts_extractor.show_basic_facts()

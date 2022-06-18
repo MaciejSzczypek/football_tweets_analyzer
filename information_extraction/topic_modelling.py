@@ -9,12 +9,11 @@ from utils.printing import section_printing_decorator
 
 
 @section_printing_decorator
-def show_topics_modeled_with_nmf(dataset: DataSet) -> pd.DataFrame:
+def show_topics_modeled_with_nmf(dataset: DataSet, n_of_topics: int = 4) -> pd.DataFrame:
     pd.set_option("display.max_colwidth", -1)
     print("5. TOPIC MODELING")
     print()
     max_iter = 1500
-    n_of_topics = 4
     alpha = 0.02
     l1_ratio = 0.6
     print(f"NMF: alpha: {alpha}, l1_ratio: {l1_ratio}, max_iter: {max_iter}")

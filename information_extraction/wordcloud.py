@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def show_word_cloud(text):
+def show_word_cloud(text, normalize_plurals=True):
     from wordcloud import WordCloud
     from PIL import Image
     import random
@@ -14,7 +14,7 @@ def show_word_cloud(text):
         return f"rgb({random.randint(0, 230)}, {random.randint(0, 230)}, {random.randint(0, 230)})"
 
     wordcloud = WordCloud(
-        background_color="white", mask=mask, random_state=1 #color_func=color_func,
+        background_color="white", mask=mask, random_state=1, normalize_plurals=normalize_plurals #color_func=color_func,
     ).generate(text)
 
     # Display the generated image:
