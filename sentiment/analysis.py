@@ -454,7 +454,6 @@ def _test_with_cnn(
         transfer_predictions=transfer_predictions_with_correct_class_names,
     )
 
-
 TRANSFER_LEARNING_DATASETS_INFO = [
     TransferLearningDataSetInfo(
         path="/home/maciej_szczypek/Downloads/potential_datasets/cosmos98_twitter-and-reddit-sentimental-analysis-dataset/Twitter_Data.csv",

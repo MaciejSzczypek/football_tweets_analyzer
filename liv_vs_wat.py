@@ -20,6 +20,7 @@ from information_extraction import (
     show_time_frames_analysis,
     show_word_cloud,
 )
+from information_extraction.enums import Season, League
 from sentiment.analysis import show_sentiment_analysis_accuracies_results
 
 
@@ -30,9 +31,9 @@ def run_liverpool_watford_analysis():
         LIVERPOOL_VS_WATFORD_WITH_TWEET_SPECIFIC_NOISE_REMOVED_FILE_PATH
     )
     original_df = DataLoader.from_csv(LIVERPOOL_VS_WATFORD_ORIGINAL_FILE_PATH)
-    labeled_df_for_sentiment_analysis_tests = DataLoader.from_csv(
-        LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_PATH
-    )
+    # labeled_df_for_sentiment_analysis_tests = DataLoader.from_csv(
+    #     LIVERPOOL_VS_WATFORD_RANDOM_BATCH_FULLY_TAGGED_FILE_PATH
+    # )
     # data preparation
     df = DuplicatedTweetsRemover.remove_duplicated_tweets(
         initial_df_with_tweet_specific_noise_removed
@@ -46,11 +47,11 @@ def run_liverpool_watford_analysis():
         df=df.copy(),
         hyper_parameters_config=configs.settings["analysis_with_emoticons"],
     )
-    labeled_dataset_for_sentiment_analysis_tests = DataSet.create(
-        df=labeled_df_for_sentiment_analysis_tests,
-        hyper_parameters_config=configs.settings["setting_for_sentiment_analysis"],
-        tfidf_vectorizer=TfidfVectorizer(token_pattern=r"\S+", stop_words="english")
-    )
+    # labeled_dataset_for_sentiment_analysis_tests = DataSet.create(
+    #     df=labeled_df_for_sentiment_analysis_tests,
+    #     hyper_parameters_config=configs.settings["setting_for_sentiment_analysis"],
+    #     tfidf_vectorizer=TfidfVectorizer(token_pattern=r"\S+", stop_words="english")
+    # )
 
     # top n-grams
     # show_top_ngrams(corpus=dataset_without_emoticons.normalized_tweets_as_token_lists)
@@ -60,6 +61,8 @@ def run_liverpool_watford_analysis():
     # show_basic_facts(
     #     corpus_without_emoticons=dataset_without_emoticons.initial_tweets_array,
     #     corpus_with_emoticons=dataset_with_emoticons.initial_tweets_array,
+    #     season=Season.SEASON_19_20,
+    #     league=League.PREMIER_LEAGUE,
     # )
     # summarization
     # show_most_relevant_sentences(
@@ -67,11 +70,11 @@ def run_liverpool_watford_analysis():
     #     df_before_transformation=dataset_without_emoticons.initial_df,
     #     sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
     # )
-    show_summaries_generated_with_transformers(dataset_without_emoticons.df_with_normalized_tweets)
+    # show_summaries_generated_with_transformers(dataset_without_emoticons.df_with_normalized_tweets)
     # topic modeling
-    # df_with_topic_labels = show_topics_modeled_with_nmf(
-    #     dataset=dataset_without_emoticons,
-    # )
+    df_with_topic_labels = show_topics_modeled_with_nmf(
+        dataset=dataset_without_emoticons,
+    )
     # sentiment analysis
     # show_sentiment_analysis_accuracies_results(
     #     dataset=labeled_dataset_for_sentiment_analysis_tests,
@@ -81,12 +84,12 @@ def run_liverpool_watford_analysis():
     # )
 
     # time frame analysis
-    # show_time_frames_analysis(
-    #     # df_sentiment=dataset_with_emoticons.initial_df_with_emojis_converted_to_text,
-    #     # df_topic=df_with_topic_labels,
-    #     df_sentiment=pd.read_csv("results/df_sentiment"),
-    #     df_topic=pd.read_csv("results/df_topic"),
-    # )
+    show_time_frames_analysis(
+        df_sentiment=dataset_with_emoticons.initial_df_with_emojis_converted_to_text,
+        df_topic=df_with_topic_labels,
+        # df_sentiment=pd.read_csv("results/df_sentiment"),
+        # df_topic=pd.read_csv("results/df_topic"),
+    )
 
 
 if __name__ == "__main__":

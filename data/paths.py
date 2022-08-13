@@ -38,6 +38,14 @@ class DataFilePaths:
     def tweet_specific_noise_removed(self):
         return self._create_path("with_tweet_specific_noise_removed")
 
+    @property
+    def random_batch(self):
+        return self._create_path("random_batch")
+
+    @property
+    def random_batch_fully_tagged(self):
+        return self._create_path("random_batch_fully_tagged")
+
 # endregion common
 
 # region liverpool watford

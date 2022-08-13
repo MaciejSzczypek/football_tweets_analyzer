@@ -1,6 +1,6 @@
 import re
 from typing import Dict, Tuple, List
-
+from information_extraction.enums import Season, League
 import pandas as pd
 from emoji import demojize, UNICODE_EMOJI
 from nltk.tag.stanford import StanfordNERTagger
@@ -35,6 +35,8 @@ class FactsExtractor:
         corpus_without_emoticons: List[str],
         corpus_with_emoticons: List[str],
         n_latest_tweets_used_for_result_collection: int,
+        season: Season,
+        league: League
     ) -> None:
         self._corpus_without_emoticons = self._tokenize_tweets_corpus(corpus_without_emoticons)
         self._corpus_with_emoticons = corpus_with_emoticons
@@ -46,12 +48,15 @@ class FactsExtractor:
             "pretrained_models/stanford-ner-2014-08-27/classifiers/english.all.3class.distsim.crf.ser.gz",
             "pretrained_models/stanford-ner-2014-08-27/stanford-ner-3.4.1.jar",
         )
+        self._season = season
+        self._league = league
         self._teams_occurrences = {}
         self._score_occurrences = {}
         self._persons_occurrences = {}
         self._hashtag_occurrences = {}
         self._emoticons_occurrences = {}
         self._add_all_simple_facts_related_occurrences(n_latest_tweets_used_for_result_collection)
+        self.team_1, self.team_2 = self._get_teams_which_played()
         self._add_all_person_occurrences()
 
     def show_basic_facts(self):
@@ -114,8 +119,7 @@ class FactsExtractor:
 
     @new_line_appendix_decorator
     def _print_teams_that_have_played(self) -> None:
-        team_1, team_2 = self._get_teams_which_played()
-        print(self.QUESTION_WHO_PLAYED, f"- {team_1} and {team_2}", sep="\n")
+        print(self.QUESTION_WHO_PLAYED, f"- {self.team_1} and {self.team_2}", sep="\n")
 
     @new_line_appendix_decorator
     def _print_result(self) -> None:
@@ -125,7 +129,7 @@ class FactsExtractor:
     @new_line_appendix_decorator
     def _print_10_most_often_mentioned_persons(self) -> None:
         top_10_most_often_mentioned_persons = self._get_top_n_counted_items_from_dict(
-            dict=self._persons_occurrences, n=10,
+            dict=self._persons_occurrences, n=30,
         )
         top_10_persons = []
         for person, person_count in top_10_most_often_mentioned_persons:
@@ -169,7 +173,7 @@ class FactsExtractor:
             top_10_emoticons.append(hashtag_dict)
         top_10_emoticons_df = pd.DataFrame(top_10_emoticons)
         top_10_emoticons_df.to_csv("results/top_emoticons.csv")
-        print(self.QUESTION_MOST_POPULAR_EMOTICONS, top_10_emoticons_df, sep="\n")
+        print(self.QUESTION_MOST_POPULAR_EMOTICONS, top_10_emoticons_df , sep="\n")
 
     def _get_teams_which_played(self) -> Tuple[str, str]:
         teams = list(sorted(self._teams_occurrences, key=self._teams_occurrences.get,))
@@ -211,8 +215,9 @@ class FactsExtractor:
         team_1 = self._get_proper_club_key(first_token=n_minus_2_token, second_token=n_minus_1_token, left_side_of_result=True)
         team_2 = self._get_proper_club_key(first_token=n_plus_1_token, second_token=n_plus_2_token, left_side_of_result=False)
         standardized_result = f"{team_1} {result} {team_2}"
-        occurrence_score = self._score_occurrences.get(standardized_result, 0)
-        self._score_occurrences[standardized_result] = occurrence_score + 1
+        if team_1 and team_2:
+            occurrence_score = self._score_occurrences.get(standardized_result, 0)
+            self._score_occurrences[standardized_result] = occurrence_score + 1
 
     def _get_proper_club_key(self, first_token: str, second_token: str, left_side_of_result: bool):
         joined_tokens = f"{first_token}{second_token}"
@@ -268,10 +273,12 @@ class FactsExtractor:
                 self._primiera_division_teams[CLUBS_KEY_COLUMN_NAME] == key
                 ][CLUBS_NAME_COLUMN_NAME].iloc[0]
 
-    @classmethod
-    def _get_teams_squads(cls):
+    def _get_teams_squads(self):
         teams_squads_scrapper = TeamsSquadsScrapper(
-            team_1_name="Watford FC", team_2_name="Liverpool FC"
+            team_1_name=self.team_1,
+            team_2_name=self.team_2,
+            season=self._season,
+            league=self._league,
         )
         return teams_squads_scrapper.get_teams_squads()
 
@@ -288,13 +295,17 @@ class FactsExtractor:
 def show_basic_facts(
     corpus_without_emoticons,
     corpus_with_emoticons,
+    season: Season,
+    league: League,
     n_latest_tweets_used_for_result_collection: int = None,
 ):
-    print("2. BASIC FACTS")
+    print("BASIC FACTS")
     print()
     facts_extractor = FactsExtractor(
         corpus_without_emoticons=corpus_without_emoticons,
         corpus_with_emoticons=corpus_with_emoticons,
         n_latest_tweets_used_for_result_collection=n_latest_tweets_used_for_result_collection,
+        season=season,
+        league=league,
     )
     facts_extractor.show_basic_facts()
