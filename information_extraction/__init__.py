@@ -1,8 +1,0 @@
-from information_extraction.facts_extractor import show_basic_facts
-from information_extraction.keyphrase_extraction import show_top_ngrams
-from information_extraction.text_summarization import (
-    show_most_relevant_sentences, show_summaries_generated_with_transformers
-)
-from information_extraction.topic_modelling import show_topics_modeled_with_nmf
-from information_extraction.time_frames import show_time_frames_analysis
-from information_extraction.wordcloud import show_word_cloud
