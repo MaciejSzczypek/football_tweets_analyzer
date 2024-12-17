@@ -17,37 +17,36 @@ class TransformedCorpus:
 class CorpusTransformer:
     @classmethod
     def transform_twitter_corpus(
-        cls,
-        corpus: Array[str],
-        hyper_parameters_config: HyperParametersConfig,
-        remove_empty_tweets: bool = True,
+            cls,
+            corpus: Array[str],
+            config: HyperParametersConfig,
+            remove_empty: bool = True,
     ) -> TransformedCorpus:
         tokenized_tweets = CorpusTokenizer.tokenize(
             corpus=corpus,
-            word_tokenizer=hyper_parameters_config.corpus.tokenization.word_tokenizer,
-            sentence_tokenizer=hyper_parameters_config.corpus.tokenization.sentence_tokenizer,
+            word_tokenizer=config.corpus.tokenization.word_tokenizer,
+            sentence_tokenizer=config.corpus.tokenization.sentence_tokenizer,
         )
+
         tokenized_corpus_normalizer = TokenizedCorpusNormalizer()
-        normalization_operations_config = (
-            hyper_parameters_config.corpus.normalization.operations
-        )
-        tokenized_and_normalized_tweets = tokenized_corpus_normalizer.normalize(
+        normalized_tweets = tokenized_corpus_normalizer.normalize(
             tokenized_corpus=tokenized_tweets,
-            normalization_operations_config=normalization_operations_config,
+            normalization_operations_config=config.corpus.normalization.operations,
         )
-        indexes_of_removed_tweets = []
-        if remove_empty_tweets:
-            tokenized_and_normalized_tweets_without_empty_tweets = []
-            for index, tweet in enumerate(tokenized_and_normalized_tweets):
-                if tweet:
-                    tokenized_and_normalized_tweets_without_empty_tweets.append(tweet)
-                else:
-                    indexes_of_removed_tweets.append(index)
-            tokenized_and_normalized_tweets = (
-                tokenized_and_normalized_tweets_without_empty_tweets
-            )
+
+        if remove_empty:
+            normalized_tweets, removed_indexes = cls._filter_empty_tweets(normalized_tweets)
+        else:
+            removed_indexes = []
 
         return TransformedCorpus(
-            corpus=tokenized_and_normalized_tweets,
-            indexes_of_removed_tweets=indexes_of_removed_tweets,
+            corpus=normalized_tweets,
+            indexes_of_removed_tweets=removed_indexes,
         )
+
+    @staticmethod
+    def _filter_empty_tweets(tweets: List[List[str]]) -> (List[List[str]], List[int]):
+        filtered_tweets = [tweet for tweet in tweets if tweet]
+        removed_indexes = [i for i, tweet in enumerate(tweets) if not tweet]
+        return filtered_tweets, removed_indexes
+

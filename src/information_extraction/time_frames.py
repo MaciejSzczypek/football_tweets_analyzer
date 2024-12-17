@@ -1,9 +1,12 @@
 import datetime
+import os.path
+
 import math
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from configs.config_schema import PathsConfig
 from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME, CREATED_AT_COLUMN_NAME
 from sentiment.labeler import Labeler
 from utils.printing import section_printing_decorator
@@ -77,7 +80,7 @@ def _prepare_figure(
     plt.show()
 
 
-def _show_topic_statistics(df_topic: pd.DataFrame, time_frames, total_tweets_per_time_frame):
+def _show_topic_statistics(df_topic: pd.DataFrame, time_frames, total_tweets_per_time_frame, paths_config: PathsConfig):
     df = (
         df_topic
             .groupby(["time_frame", "topic"])["tweet"]
@@ -99,34 +102,34 @@ def _show_topic_statistics(df_topic: pd.DataFrame, time_frames, total_tweets_per
         df=df_topic_count_series,
         time_frames=time_frames,
         y_label="Tweet count",
-        file_name="results/topics_absolute_linear",
+        file_name=os.path.join(paths_config.results_dir, "topics_absolute_linear"),
     )
     df_topic_percentage_series = pd.DataFrame(topic_percentage_series)
     _prepare_figure(
         df=df_topic_percentage_series,
         time_frames=time_frames,
         y_label="Tweet percentage [%]",
-        file_name="results/topics_percentage_linear",
+        file_name=os.path.join(paths_config.results_dir, "topics_percentage_linear"),
     )
     _prepare_figure(
         df=df_topic_count_series,
         time_frames=time_frames,
         y_label="Tweet count",
-        file_name="results/topics_absolute_bar",
+        file_name=os.path.join(paths_config.results_dir, "topics_absolute_bar"),
         is_stacked_bar_plot=True,
     )
     _prepare_figure(
         df=df_topic_percentage_series,
         time_frames=time_frames,
         y_label="Tweet percentage [%]",
-        file_name="results/topics_percentage_bar",
+        file_name=os.path.join(paths_config.results_dir, "topics_percentage_bar"),
         is_stacked_bar_plot=True,
     )
 
     print(df)
 
 
-def _show_sentiment_statistics(df_sentiment: pd.DataFrame, time_frames, total_tweets_per_time_frame):
+def _show_sentiment_statistics(df_sentiment: pd.DataFrame, time_frames, total_tweets_per_time_frame, paths_config):
     df = (
         df_sentiment
             .groupby(["time_frame", LABEL_COLUMN_NAME])[TEXT_COLUMN_NAME]
@@ -148,39 +151,38 @@ def _show_sentiment_statistics(df_sentiment: pd.DataFrame, time_frames, total_tw
         df=df_sentiment_count_series,
         time_frames=time_frames,
         y_label="Tweet count",
-        file_name="results/sentiment_absolute_linear",
+        file_name=os.path.join(paths_config.results_dir, "sentiment_absolute_linear"),
     )
     _prepare_figure(
         df=df_sentiment_percentage_series,
         time_frames=time_frames,
         y_label="Tweet percentage [%]",
-        file_name="results/sentiment_percentage_linear",
+        file_name=os.path.join(paths_config.results_dir, "sentiment_percentage_linear"),
     )
     _prepare_figure(
         df=df_sentiment_count_series,
         time_frames=time_frames,
         y_label="Tweet count",
-        file_name="results/sentiment_absolute_bar",
+        file_name=os.path.join(paths_config.results_dir, "sentiment_absolute_bar"),
         is_stacked_bar_plot=True,
     )
     _prepare_figure(
         df=df_sentiment_percentage_series,
         time_frames=time_frames,
         y_label="Tweet percentage [%]",
-        file_name="results/sentiment_percentage_bar",
+        file_name=os.path.join(paths_config.results_dir,"sentiment_percentage_bar"),
         is_stacked_bar_plot=True,
     )
     print(df)
 
 
-@section_printing_decorator
+@section_printing_decorator("TIME FRAME SENTIMENT AND TOPICS ANALYSIS")
 def show_time_frames_analysis(
         df_sentiment: pd.DataFrame,
         df_topic: pd.DataFrame,
-        time_frame_minutes_length: int = 30
+        paths_config: PathsConfig,
+        time_frame_minutes_length: int = 30,
 ):
-    print("7. TIME FRAME SENTIMENT AND TOPICS ANALYSIS")
-    print()
     sentiment_time_series = df_sentiment[CREATED_AT_COLUMN_NAME].apply(pd.to_datetime)
     time_frames = _get_time_frames(
         time_series=sentiment_time_series,
@@ -220,18 +222,20 @@ def show_time_frames_analysis(
     figure.set_xlabel("Time frame", fontsize=15, labelpad=15)
     figure.set_ylabel("Tweet count", fontsize=15, labelpad=15)
     figure.set_xticklabels(time_frames[LABEL_COLUMN_NAME], rotation=90)
-    figure.figure.savefig("results/total_tweets_time_frame_real_liv.png")
+    figure.figure.savefig(os.path.join(paths_config.results_dir,"total_tweets_time_frame_real_liv.png"))
     plt.show()
 
     _show_topic_statistics(
         df_topic=df_topic,
         total_tweets_per_time_frame=total_tweets_per_time_frame,
         time_frames=time_frames,
+        paths_config=paths_config
     )
-    # _show_sentiment_statistics(
-    #     df_sentiment=df_sentiment,
-    #     total_tweets_per_time_frame=total_tweets_per_time_frame,
-    #     time_frames=time_frames,
-    # )
-    # print(df_sentiment)
-    # print(time_frames)
+    _show_sentiment_statistics(
+        df_sentiment=df_sentiment,
+        total_tweets_per_time_frame=total_tweets_per_time_frame,
+        time_frames=time_frames,
+        paths_config=paths_config
+    )
+    print(df_sentiment)
+    print(time_frames)

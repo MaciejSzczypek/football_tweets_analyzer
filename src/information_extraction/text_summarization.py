@@ -89,16 +89,16 @@ class TweetsSummarizer:
             print(f"{index + 1}. {tweet[cls.PRE_NORMALIZED_SENTENCE_COLUMN_NAME]}")
 
 
-@section_printing_decorator
+@section_printing_decorator("MOST RELEVANT TWEETS")
 def show_most_relevant_sentences(
     normalized_tweets_as_strings: List[str],
     df_before_transformation: pd.DataFrame,
     sentences: List[List[str]],
     maximum_number_of_features: int = 100,
-    random_batch_size: int = 28_000,
+    random_batch_size: int = None,
 ):
-    print("3. MOST RELEVANT TWEETS")
-    print()
+    if not random_batch_size:
+        random_batch_size = len(sentences)
     tfidf_df = create_df_with_tfidf_feature_vectors(
         corpus=normalized_tweets_as_strings, maximum_number_of_features=maximum_number_of_features,
     )

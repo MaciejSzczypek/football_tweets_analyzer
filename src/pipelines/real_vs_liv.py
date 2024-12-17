@@ -10,14 +10,14 @@ from data.paths import (
 )
 from data.utils import DataSet
 from information_extraction.enums import Season, League
-from information_extraction.facts_extractor import show_basic_facts
+from information_extraction.facts_extractor import print_basic_facts
 from information_extraction.keyphrase_extraction import show_top_ngrams
 from information_extraction.text_summarization import (
     show_most_relevant_sentences, show_summaries_generated_with_transformers
 )
 from information_extraction.time_frames import show_time_frames_analysis
 from information_extraction.topic_modelling import show_topics_modeled_with_nmf
-from information_extraction.wordcloud import show_word_cloud
+from information_extraction.wordcloud import generate_word_cloud
 from sentiment.analysis import show_sentiment_analysis_accuracies_results
 
 
@@ -55,10 +55,10 @@ def run_analysis():
 
     # top n-grams
     show_top_ngrams(corpus=dataset_without_emoticons.normalized_tweets_as_token_lists)
-    show_word_cloud(text=dataset_without_emoticons.flat_text, normalize_plurals=False)
+    generate_word_cloud(text=dataset_without_emoticons.flat_text, normalize_plurals=False)
 
     # facts extraction
-    show_basic_facts(
+    print_basic_facts(
         corpus_without_emoticons=dataset_without_emoticons.initial_tweets_array,
         corpus_with_emoticons=dataset_with_emoticons.initial_tweets_array,
         n_latest_tweets_used_for_result_collection=5000,
@@ -82,7 +82,6 @@ def run_analysis():
         dataset=labeled_dataset_for_sentiment_analysis_tests,
         config_file_path=real_liverpool_file_paths.configuration_path,
         accuracies_df_path_to_load="/home/maciej_szczypek/PJATK/master_thesis/python_project/data/auxiliary_files/accuracies_df_real_liv.csv",
-        # output_accuracies_df_path="/home/maciej_szczypek/PJATK/master_thesis/python_project/data/auxiliary_files/accuracies_df_real_liv.csv",
     )
     # time frame analysis
     show_time_frames_analysis(

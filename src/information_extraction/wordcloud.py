@@ -1,24 +1,32 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+from PIL import Image
+import random
+import os
+from configs.config_schema import PathsConfig
 
 
-def show_word_cloud(text, normalize_plurals=True):
-    from wordcloud import WordCloud
-    from PIL import Image
-    import random
+def _color_randomly(*args, **kwargs):
+    return f"rgb({random.randint(0, 230)}, {random.randint(0, 230)}, {random.randint(0, 230)})"
 
-    # Create and generate a word cloud image:
-    football_mask = np.array(Image.open("data/wordcloud_masks/football_mask.png"))
-    mask = np.array(Image.open("data/wordcloud_masks/footballer_mask.jpg"))
-
-    def color_func(*args, **kwargs):
-        return f"rgb({random.randint(0, 230)}, {random.randint(0, 230)}, {random.randint(0, 230)})"
+def generate_word_cloud(text: str, paths_config: PathsConfig, normalize_plurals = True, show = True, save = True):
+    mask = np.array(Image.open(paths_config.wordcloud_mask))
 
     wordcloud = WordCloud(
-        background_color="white", mask=mask, random_state=1, normalize_plurals=normalize_plurals #color_func=color_func,
+        background_color="white",
+        mask=mask,
+        random_state=1,
+        normalize_plurals=normalize_plurals,
+        color_func=_color_randomly,
     ).generate(text)
 
-    # Display the generated image:
     plt.imshow(wordcloud, interpolation='bilinear')
-    wordcloud.to_file("results/wordcloud.png")
+    if show:
+        plt.show()
+    if save:
+        path = os.path.join(paths_config.results_dir, "wordcloud.png")
+        wordcloud.to_file(path)
+        print(f"Wordcloud saved in {path}")
+
 

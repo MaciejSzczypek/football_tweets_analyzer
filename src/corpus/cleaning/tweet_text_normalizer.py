@@ -6,7 +6,6 @@ from corpus.cleaning.constants import (
     CONTRACTION_EXTENSIONS,
     NORMALIZED_FOOTBALL_RESULT_FORMAT_REGEX,
 )
-import enchant
 import re
 
 

@@ -21,7 +21,7 @@ def save_df_with_labeled_tweets():
     )
     df_vader_sentiment_result = Labeler.get_data_sentiment_with_vader(df)
     df_textblob_sentiment_result = Labeler.get_data_sentiment_with_text_blob(df)
-    df_sentiwordnet_sentiment_result = Labeler.get_data_sentiment_with_sentiwordnet(df)
+    df_senti_word_net_sentiment_result = Labeler.get_data_sentiment_with_senti_word_net(df)
     aggregated_df = pd.DataFrame(
         {
             **df.to_dict(),
@@ -37,30 +37,15 @@ def save_df_with_labeled_tweets():
             TEXTBLOB_LABEL_COLUMN_NAME: df_textblob_sentiment_result[
                 Labeler.LABEL_COLUMN_NAME
             ],
-            SENTIWORDNET_POLARITY_COLUMN_NAME: df_sentiwordnet_sentiment_result[
+            SENTIWORDNET_POLARITY_COLUMN_NAME: df_senti_word_net_sentiment_result[
                 Labeler.POLARITY_COLUMN_NAME
             ],
-            SENTIWORDNET_LABEL_COLUMN_NAME: df_sentiwordnet_sentiment_result[
+            SENTIWORDNET_LABEL_COLUMN_NAME: df_senti_word_net_sentiment_result[
                 Labeler.LABEL_COLUMN_NAME
             ],
         }
     )
     aggregated_df.to_csv(LIVERPOOL_VS_WATFORD_LABELED_FILE_PATH)
-    each_model_different_decision = aggregated_df[
-        (
-            aggregated_df[VADER_LABEL_COLUMN_NAME]
-            != aggregated_df[TEXTBLOB_LABEL_COLUMN_NAME]
-        )
-        & (
-            aggregated_df[VADER_LABEL_COLUMN_NAME]
-            != aggregated_df[SENTIWORDNET_LABEL_COLUMN_NAME]
-        )
-        & (
-            aggregated_df[TEXTBLOB_LABEL_COLUMN_NAME]
-            != aggregated_df[SENTIWORDNET_LABEL_COLUMN_NAME]
-        )
-    ]
-    print(len(each_model_different_decision) / len(aggregated_df))
 
 
 if __name__ == "__main__":

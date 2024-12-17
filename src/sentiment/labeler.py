@@ -41,10 +41,10 @@ class Labeler:
         return labeled_df
 
     @classmethod
-    def get_data_sentiment_with_sentiwordnet(
+    def get_data_sentiment_with_senti_word_net(
             cls, df: pd.DataFrame, polarity_absolute_threshold: float = 0.08
     ) -> pd.DataFrame:
-        analyser = cls._sentiwordnet_sentiment_analyser
+        analyser = cls._senti_word_net_sentiment_analyser
         labeled_df = cls._get_data_sentiment(
             df=df,
             sentiment_polarity_calculator=analyser,
@@ -80,13 +80,11 @@ class Labeler:
             return SentimentLabel.neutral.value
 
     @classmethod
-    def _sentiwordnet_sentiment_analyser(cls, text: str):
+    def _senti_word_net_sentiment_analyser(cls, text: str):
         tokenized_text = CustomTokenizer.tokenize(text)
         tagged_tokens = pos_tag(tokenized_text)
-        pos_score = 0
-        neg_score = 0
-        token_count = 0
-        obj_score = 0
+        pos_score, neg_score, token_count, obj_score = 0, 0, 0, 0
+
         for token, tag in tagged_tokens:
             ss_set = None
             if "NN" in tag and list(sentiwordnet.senti_synsets(token, "n")):

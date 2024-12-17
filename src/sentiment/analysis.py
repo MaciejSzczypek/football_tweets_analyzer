@@ -1,7 +1,8 @@
 import logging
+import os.path
 import time
-from collections import Counter
-from typing import List, Dict, Tuple, Any, Optional
+from dataclasses import dataclass
+from typing import Tuple, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,17 +12,18 @@ import sklearn
 from keras import layers
 from keras.callbacks import EarlyStopping
 from keras.models import Sequential
+from keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
-from nltk import NaiveBayesClassifier, SklearnClassifier, MaxentClassifier
-from nltk import classify
+from nltk import NaiveBayesClassifier, SklearnClassifier, MaxentClassifier, classify
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.model_selection import train_test_split
 
-from configs.config_loader import ConfigLoader
-from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME
+from configs.config_schema import PathsConfig
+from data.column_names import LABEL_COLUMN_NAME
 from data.utils import DataSet
+from learning_datasets.index import TransferLearningDataSet
+from learning_datasets.loader import DatasetLoader
 from sentiment.labeler import Labeler
 from utils.printing import section_printing_decorator
 
@@ -29,7 +31,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sentiment_logger")
 
 
-def get_model_accuracies(original_labeled_df, model_labeled_df):
+def get_model_accuracies(original_labeled_df, model_labeled_df, paths_config: PathsConfig):
     label_accuracies = []
     labels = [-1, 0, 1]
     label_counts = []
@@ -61,12 +63,12 @@ def get_model_accuracies(original_labeled_df, model_labeled_df):
         annot_kws={"size": 16},
         cmap=cmap,
         fmt=".2%",
-        xticklabels=["negatywne", "neutralne", "pozytywne"],
-        yticklabels=["negatywne", "neutralne", "pozytywne"],
+        xticklabels=["negative", "neutral", "positive"],
+        yticklabels=["negative", "neutral", "positive"],
     )
     plt.yticks(rotation=0)
     plt.tight_layout()
-    plt.savefig("results/confusion_matrix_vader")
+    plt.savefig(os.path.join(paths_config.results_dir, "confusion_matrix_vader"))
     plt.show()
 
     matching_label_rows = original_labeled_df[
@@ -75,103 +77,6 @@ def get_model_accuracies(original_labeled_df, model_labeled_df):
 
     average_accuracy = len(matching_label_rows) / len(original_labeled_df)
     return label_accuracies, average_accuracy, label_counts
-
-
-def _load_datasets(
-        file_path: str,
-        text_column_name: str,
-        label_column_name: str,
-        sentiment_label_conversion_map: Optional[Dict[Any, int]],
-        config_file_path: str,
-) -> Tuple[DataSet, DataSet]:
-    configs = ConfigLoader.load(config_file_path)
-    df = pd.read_csv(file_path)
-    df = df.rename(
-        columns={
-            text_column_name: TEXT_COLUMN_NAME,
-            label_column_name: LABEL_COLUMN_NAME,
-        }
-    )
-    if sentiment_label_conversion_map:
-        df[LABEL_COLUMN_NAME] = df[LABEL_COLUMN_NAME].replace(
-            sentiment_label_conversion_map
-        )
-    df = df.dropna()
-    train_df, test_df = train_test_split(df, test_size=0.1)
-    train_dataset = DataSet.create(
-        df=train_df,
-        hyper_parameters_config=configs.settings["setting_for_sentiment_analysis"]
-    )
-    test_dataset = DataSet.create(
-        df=test_df,
-        hyper_parameters_config=configs.settings["setting_for_sentiment_analysis"]
-    )
-    return train_dataset, test_dataset
-
-
-def _load_tfidf_datasets(
-        file_path: str,
-        text_column_name: str,
-        label_column_name: str,
-        main_test_dataset: DataSet,
-        convert_emojis_to_text: bool,
-        sentiment_label_conversion_map: Optional[Dict[Any, int]],
-        config_file_path: str,
-):
-    configs = ConfigLoader.load(config_file_path)
-    df = pd.read_csv(file_path)
-    df = df.rename(
-        columns={
-            text_column_name: TEXT_COLUMN_NAME,
-            label_column_name: LABEL_COLUMN_NAME,
-        }
-    )
-    if sentiment_label_conversion_map:
-        df[LABEL_COLUMN_NAME] = df[LABEL_COLUMN_NAME].replace(
-            sentiment_label_conversion_map
-        )
-    df = df.dropna()
-    dataset = DataSet.create(
-        df=df,
-        hyper_parameters_config=configs.settings["setting_for_sentiment_analysis"],
-        tfidf_vectorizer=TfidfVectorizer(
-            token_pattern=r"\S+", stop_words="english", max_features=1000,
-        )
-    )
-    x_train, x_test, y_train, y_test = train_test_split(
-        dataset.tfidf.toarray(),#[:,:,None],
-        dataset.df_with_normalized_tweets[LABEL_COLUMN_NAME],
-        test_size=0.1,
-    )
-    if not convert_emojis_to_text:
-        x_main = dataset.tfidf_vectorizer.fit_transform(main_test_dataset.normalized_tweets_as_strings)
-    else:
-        x_main = dataset.tfidf_vectorizer.fit_transform(
-            main_test_dataset.normalized_tweets_as_demojized_strings
-        ).toarray()#[:,:,None]
-    return x_train, x_test, x_main, y_train, y_test
-
-
-from dataclasses import dataclass
-
-
-@dataclass
-class TransferLearningDataSetInfo:
-    path: str
-    text_column_name: str
-    label_column_name: str
-    sentiment_label_conversion_map: Optional[Dict] = None
-
-
-@dataclass
-class TransferLearningDataSet:
-    train_data_nltk: DataSet
-    test_data_nltk: DataSet
-    train_data_tfidf: List
-    train_data_tfidf_labels: List
-    test_data_tfidf: List
-    test_data_tfidf_labels: List
-    main_test_data_tfidf: List
 
 
 @dataclass
@@ -225,105 +130,11 @@ def _train_and_test_with_nltk_model(
         transfer_predictions=transfer_predictions
     )
 
-
-def _test_with_voting(
-    main_test_dataset: DataSet,
-    models_test_results: List[ModelTestResults],
-    enable_weighting: bool = False,
-    top_n_models: int = 3,
-):
-    logger.info("--------Voting------")
-    labels = main_test_dataset.df_with_normalized_tweets[LABEL_COLUMN_NAME]
-
-    voted_predictions = []
-    for index in range(len(labels)):
-        vote_results = {-1: 0, 0: 0, 1: 0}
-        top_models_test_results = sorted(
-            models_test_results,
-            key=lambda model_test_result: model_test_result.transfer_accuracy
-        )[-top_n_models:]
-        for model_test_results in top_models_test_results:
-            prediction = model_test_results.transfer_predictions[index]
-            if enable_weighting:
-                vote_results[prediction] += model_test_results.transfer_accuracy
-            else:
-                vote_results[prediction] += 1
-        sorted_results = sorted(vote_results.items(), key=lambda item: item[1], reverse=True)
-        vote_result = sorted_results[0][0]
-        voted_predictions.append(vote_result)
-    correct_predictions = [
-        voted_prediction == main_test_dataset.df_with_normalized_tweets[LABEL_COLUMN_NAME].loc[index]
-        for index, voted_prediction in enumerate(voted_predictions)
-    ]
-    transfer_accuracy = sum(correct_predictions) / len(voted_predictions)
-    return ModelTestResults(
-        test_accuracy=None,
-        transfer_accuracy=transfer_accuracy,
-        transfer_predictions=pd.Series(voted_predictions),
-    )
-
-
-def _test_with_simple_neural_network(
-        tl_dataset,
-        main_test_dataset: DataSet,
-):
-    logger.info("------Custom Neural Network------")
-    labels = main_test_dataset.df_with_normalized_tweets[LABEL_COLUMN_NAME]
-    model = Sequential()
-    model.add(layers.Dense(1000, activation='relu'))
-    model.add(layers.Dense(250, activation='relu'))
-    model.add(layers.Dense(50, activation='relu'))
-    model.add(layers.Dense(3, activation='softmax'))
-    model.compile(
-        optimizer='adam',
-        loss='categorical_crossentropy',
-        metrics=['accuracy'],
-    )
-    y_train = to_categorical(tl_dataset.train_data_tfidf_labels, num_classes=3)
-    y_test = to_categorical(tl_dataset.test_data_tfidf_labels, num_classes=3)
-    labels = to_categorical(labels, num_classes=3)
-    model.fit(
-        tl_dataset.train_data_tfidf,
-        y_train,
-        epochs=20,
-        use_multiprocessing=True,
-        # steps_per_epoch=100,
-        callbacks=[EarlyStopping(monitor='accuracy', mode='max', min_delta=1, patience=2)],
-    )
-    test_accuracy = model.evaluate(
-        tl_dataset.test_data_tfidf,
-        y_test
-    )[1]
-    test_predictions = model.predict_classes(tl_dataset.test_data_tfidf)
-    transfer_predictions = model.predict_classes(tl_dataset.main_test_data_tfidf)
-
-    transfer_accuracy = model.evaluate(
-        tl_dataset.main_test_data_tfidf,
-        labels
-    )[1]
-    print("test", Counter(test_predictions))
-    print("transfer", Counter(transfer_predictions))
-    transfer_predictions_with_correct_class_names = pd.Series(
-        [
-            prediction if prediction != 2 else -1
-            for prediction in transfer_predictions
-        ]
-    )
-    return ModelTestResults(
-        test_accuracy=test_accuracy,
-        transfer_accuracy=transfer_accuracy,
-        transfer_predictions=transfer_predictions_with_correct_class_names,
-    )
-
-
 def _test_with_lstm(
         train_dataset: DataSet,
         test_dataset: DataSet,
         main_test_dataset: DataSet,
 ):
-    from keras.preprocessing.text import Tokenizer
-    from keras.preprocessing.sequence import pad_sequences
-
     logger.info("------LSTM Neural Network------")
     tokenizer = Tokenizer(num_words=1500)
     tokenizer.fit_on_texts(train_dataset.normalized_tweets_as_demojized_strings)
@@ -349,21 +160,21 @@ def _test_with_lstm(
         # steps_per_epoch=1000,
         callbacks=[EarlyStopping(monitor='accuracy', mode='max', min_delta=1, patience=2)],
     )
-    test_predictions = model.predict_classes(padded_test_tweets)
-    transfer_predictions = model.predict_classes(padded_main_tweets)
+    test_predictions = model.predict(padded_test_tweets)
+    transfer_predictions = model.predict(padded_main_tweets)
 
-    print("test", Counter(test_predictions))
-    print("transfer", Counter(transfer_predictions))
+    print("test", len(test_predictions))
+    print("transfer", len(transfer_predictions))
     test_predictions_with_correct_class_names = pd.Series(
         [
             prediction if prediction != 2 else -1
-            for prediction in test_predictions
+            for prediction in np.argmax(test_predictions,axis=1)
         ]
     )
     transfer_predictions_with_correct_class_names = pd.Series(
         [
             prediction if prediction != 2 else -1
-            for prediction in transfer_predictions
+            for prediction in np.argmax(transfer_predictions,axis=1)
         ]
     )
     correct_test_predictions = [
@@ -388,8 +199,6 @@ def _test_with_cnn(
         test_dataset: DataSet,
         main_test_dataset: DataSet,
 ):
-    from keras.preprocessing.text import Tokenizer
-    from keras.preprocessing.sequence import pad_sequences
 
     logger.info("------CNN-----")
     tokenizer = Tokenizer(num_words=1500)
@@ -420,21 +229,21 @@ def _test_with_cnn(
         # steps_per_epoch=1000,
         callbacks=[EarlyStopping(monitor='accuracy', mode='max', min_delta=0.1, patience=2)],
     )
-    test_predictions = model.predict_classes(padded_test_tweets)
-    transfer_predictions = model.predict_classes(padded_main_tweets)
+    test_predictions = model.predict(padded_test_tweets)
+    transfer_predictions = model.predict(padded_main_tweets)
 
-    print("test", Counter(test_predictions))
-    print("transfer", Counter(transfer_predictions))
+    print("test", len(test_predictions))
+    print("transfer", len(transfer_predictions))
     test_predictions_with_correct_class_names = pd.Series(
         [
             prediction if prediction != 2 else -1
-            for prediction in test_predictions
+            for prediction in np.argmax(test_predictions,axis=1)
         ]
     )
     transfer_predictions_with_correct_class_names = pd.Series(
         [
             prediction if prediction != 2 else -1
-            for prediction in transfer_predictions
+            for prediction in np.argmax(transfer_predictions,axis=1)
         ]
     )
     correct_test_predictions = [
@@ -453,59 +262,6 @@ def _test_with_cnn(
         transfer_predictions=transfer_predictions_with_correct_class_names,
     )
 
-TRANSFER_LEARNING_DATASETS_INFO = [
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/cosmos98_twitter-and-reddit-sentimental-analysis-dataset/Twitter_Data.csv",
-        text_column_name="clean_text",
-        label_column_name="category",
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/abhi8923shriv_tweetsentimentextraction/train.csv",
-        text_column_name="text",
-        label_column_name="sentiment",
-        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/arbazkhan971_product-sentiment-analysis/Participants_Data/Train.csv",
-        text_column_name="Product_Description",
-        label_column_name="Sentiment",
-        sentiment_label_conversion_map={0: 0, 3: 0,  1: -1, 2: 1},
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/bhuwanesh340_predicting-tweet-sentiments/train.csv",
-        text_column_name="original_text",
-        label_column_name="sentiment_class",
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/ivankunchev_tweet-sentiment-extraction-ml/train_ml.csv",
-        text_column_name="text",
-        label_column_name="sentiment",
-        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/louise2001_extended-train-for-tweet/extended_train.csv",
-        text_column_name="text",
-        label_column_name="sentiment",
-        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/maxjon_complete-tweet-sentiment-extraction-data/tweet_dataset.csv",
-        text_column_name="text",
-        label_column_name="new_sentiment",
-        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/seshurajup_tweet-sentiment-extraction-old/train.csv",
-        text_column_name="text",
-        label_column_name="sentiment",
-        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    ),
-    TransferLearningDataSetInfo(
-        path="/home/maciej_szczypek/Downloads/potential_datasets/vivekrathi055_sentiment-analysis-on-financial-tweets/tweet_sentiment.csv",
-        text_column_name="cleaned_tweets",
-        label_column_name="sentiment",
-    ),
-]
 
 
 def test_different_models_for_dataset(
@@ -572,10 +328,6 @@ def test_different_models_for_dataset(
         main_test_dataset=main_test_dataset,
         convert_emojis_to_text=convert_emojis_to_text,
     )
-    simple_neural_network_results = _test_with_simple_neural_network(
-        tl_dataset=tl_dataset,
-        main_test_dataset=main_test_dataset,
-    )
     lstm_results = _test_with_lstm(
         train_dataset=tl_dataset.train_data_nltk,
         test_dataset=tl_dataset.test_data_nltk,
@@ -586,35 +338,6 @@ def test_different_models_for_dataset(
         test_dataset=tl_dataset.test_data_nltk,
         main_test_dataset=main_test_dataset,
     )
-    voting_results = _test_with_voting(
-        main_test_dataset=main_test_dataset,
-        models_test_results=[
-            naive_bayes_test_results,
-            random_forrest_test_results,
-            logistic_regression_test_results,
-            bagging_test_results,
-            maxent_test_results,
-            sgd_test_results,
-            simple_neural_network_results,
-            cnn_results,
-            lstm_results,
-        ],
-    )
-    weighted_voting_results = _test_with_voting(
-        main_test_dataset=main_test_dataset,
-        models_test_results=[
-            naive_bayes_test_results,
-            random_forrest_test_results,
-            logistic_regression_test_results,
-            bagging_test_results,
-            maxent_test_results,
-            sgd_test_results,
-            simple_neural_network_results,
-            cnn_results,
-            lstm_results,
-        ],
-        enable_weighting=True,
-    )
     df = pd.DataFrame.from_dict(
         {
             "naive_bayes": naive_bayes_test_results.accuracies,
@@ -623,11 +346,8 @@ def test_different_models_for_dataset(
             "bagging": bagging_test_results.accuracies,
             "maxent": maxent_test_results.accuracies,
             "sgd": sgd_test_results.accuracies,
-            "simple_neural_network_results": simple_neural_network_results.accuracies,
             "lstm_results": lstm_results.accuracies,
             "cnn_results": cnn_results.accuracies,
-            "voting": voting_results.accuracies,
-            "weighted_voting": weighted_voting_results.accuracies,
         },
         orient="index",
         columns=["test_accuracy", "transfer_accuracy"]
@@ -639,84 +359,50 @@ def test_different_models_for_dataset(
 
 def calculate_trained_models_accuracies(
         dataset: DataSet,
-        transfer_learning_datasets_info: List[TransferLearningDataSetInfo],
         config_file_path: str,
+        convert_emojis_to_text = True
 ):
-    dataframes = []
-    dataframes_keys = []
-    convert_emojis_to_text = True
-
-    for index, tl_dataset_info in enumerate(transfer_learning_datasets_info):
-        print(f"*****{tl_dataset_info.path}*****")
-        train_dataset, test_dataset = _load_datasets(
-            file_path=tl_dataset_info.path,
-            text_column_name=tl_dataset_info.text_column_name,
-            label_column_name=tl_dataset_info.label_column_name,
-            sentiment_label_conversion_map=tl_dataset_info.sentiment_label_conversion_map,
-            config_file_path=config_file_path,
-        )
-        x_train, x_test, x_main, y_train, y_test = _load_tfidf_datasets(
-            file_path=tl_dataset_info.path,
-            text_column_name=tl_dataset_info.text_column_name,
-            label_column_name=tl_dataset_info.label_column_name,
-            main_test_dataset=dataset,
-            sentiment_label_conversion_map=tl_dataset_info.sentiment_label_conversion_map,
-            convert_emojis_to_text=convert_emojis_to_text,
-            config_file_path=config_file_path,
-        )
-        tl_dataset = TransferLearningDataSet(
-            train_data_nltk=train_dataset,
-            test_data_nltk=test_dataset,
-            train_data_tfidf=x_train,
-            train_data_tfidf_labels=y_train,
-            test_data_tfidf=x_test,
-            test_data_tfidf_labels=y_test,
-            main_test_data_tfidf=x_main,
-        )
+    dataframes, dataframes_keys = [], []
+    learning_data = DatasetLoader.load_learning_datasets(
+        config_file_path=config_file_path, dataset=dataset, convert_emojis_to_text=convert_emojis_to_text)
+    for index, tl_dataset in enumerate(learning_data):
         df = test_different_models_for_dataset(
             tl_dataset=tl_dataset,
             main_test_dataset=dataset,
             convert_emojis_to_text=convert_emojis_to_text,
         )
         dataframes.append(df)
-        dataframe_key = (
-            f"DataSet {index + 1} ({len(train_dataset.df_with_normalized_tweets)} records)"
-        )
+        dataframe_key = f"DataSet {index + 1}"
         dataframes_keys.append(dataframe_key)
 
-    accuracies_df = pd.concat(
-        dataframes,
-        keys=dataframes_keys,
-    )
+    accuracies_df = pd.concat(dataframes, keys=dataframes_keys,)
     return accuracies_df
 
 
-@section_printing_decorator
+@section_printing_decorator("SENTIMENT ANALYSIS")
 def show_sentiment_analysis_accuracies_results(
         dataset: DataSet,
         config_file_path: str,
+        paths_config: PathsConfig,
 ):
-    print("6. SENTIMENT ANALYSIS")
-    print()
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     start_time = time.time()
     accuracies_df = calculate_trained_models_accuracies(
-        dataset=dataset,
-        transfer_learning_datasets_info=TRANSFER_LEARNING_DATASETS_INFO,
-        config_file_path=config_file_path,
+        dataset=dataset, config_file_path=config_file_path,
     )
     print(accuracies_df)
     # for threshold_value in np.arange(0.05, 0.65, 0.05):
     print((time.time() - start_time) / 60)
 
     threshold_value = 0.05
-    df_sentiwordnet = Labeler.get_data_sentiment_with_sentiwordnet(
+    df_senti_word_net = Labeler.get_data_sentiment_with_senti_word_net(
         dataset.initial_df_with_emojis_converted_to_text, threshold_value
     )
-    sentiwordnet_accuracies = get_model_accuracies(
+    senti_word_net_accuracies = get_model_accuracies(
         original_labeled_df=dataset.initial_df_with_emojis_converted_to_text,
-        model_labeled_df=df_sentiwordnet,
+        model_labeled_df=df_senti_word_net,
+        paths_config=paths_config
     )
 
     df_text_blob = Labeler.get_data_sentiment_with_text_blob(
@@ -725,6 +411,7 @@ def show_sentiment_analysis_accuracies_results(
     text_blob_accuracies = get_model_accuracies(
         original_labeled_df=dataset.initial_df_with_emojis_converted_to_text,
         model_labeled_df=df_text_blob,
+        paths_config=paths_config
     )
 
     df_vader = Labeler.get_data_sentiment_with_vader(
@@ -733,16 +420,10 @@ def show_sentiment_analysis_accuracies_results(
     vader_accuracies = get_model_accuracies(
         original_labeled_df=dataset.initial_df_with_emojis_converted_to_text,
         model_labeled_df=df_vader,
+        paths_config=paths_config
     )
     print(f"------------{threshold_value:.2f}, ----------------")
-    print(
-        f"SENTI: {sentiwordnet_accuracies[0]} => {sentiwordnet_accuracies[1]}, {sentiwordnet_accuracies[2]}"
-    )
-    print(
-        f"BLOB: {text_blob_accuracies[0]} => {text_blob_accuracies[1]}, {text_blob_accuracies[2]}"
-    )
-
-    print(
-        f"VADER: {vader_accuracies[0]} => {vader_accuracies[1]}, {vader_accuracies[2]}"
-    )
+    print(f"SENTI: {senti_word_net_accuracies[0]} => {senti_word_net_accuracies[1]}, {senti_word_net_accuracies[2]}")
+    print(f"BLOB: {text_blob_accuracies[0]} => {text_blob_accuracies[1]}, {text_blob_accuracies[2]}")
+    print(f"VADER: {vader_accuracies[0]} => {vader_accuracies[1]}, {vader_accuracies[2]}")
     print("----------------------------")

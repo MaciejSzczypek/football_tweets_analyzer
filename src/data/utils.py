@@ -6,7 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from configs.config_schema import HyperParametersConfig
 from corpus.corpus_transformation_pipeline import CorpusTransformer
-from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME, CREATED_AT_COLUMN_NAME
+from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME
 from emoji import emoji_count
 from emoji.unicode_codes import UNICODE_EMOJI
 
@@ -93,7 +93,7 @@ class DataSet:
         tweets_array = df[TEXT_COLUMN_NAME].to_numpy()
         transformed_corpus = CorpusTransformer.transform_twitter_corpus(
             corpus=tweets_array,
-            hyper_parameters_config=hyper_parameters_config,
+            config=hyper_parameters_config,
         )
         df = cls._remove_df_rows(
             df=df,

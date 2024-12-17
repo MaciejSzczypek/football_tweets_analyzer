@@ -1,5 +1,8 @@
+import os.path
 import re
 from typing import Dict, Tuple, List
+
+from configs.config_schema import PathsConfig
 from information_extraction.enums import Season, League
 import pandas as pd
 from emoji import demojize
@@ -18,8 +21,6 @@ from scraping.scrappers import TeamsSquadsScrapper
 from utils.printing import section_printing_decorator, new_line_appendix_decorator
 
 
-# todo update pre-trained model version
-
 
 class FactsExtractor:
     PERSON_TAG = "PERSON"
@@ -37,7 +38,8 @@ class FactsExtractor:
         corpus_with_emoticons: List[str],
         n_latest_tweets_used_for_result_collection: int,
         season: Season,
-        league: League
+        league: League,
+        paths_config: PathsConfig
     ) -> None:
         self._corpus_without_emoticons = self._tokenize_tweets_corpus(corpus_without_emoticons)
         self._corpus_with_emoticons = corpus_with_emoticons
@@ -45,10 +47,7 @@ class FactsExtractor:
         self._primiera_division_teams = DataLoader.from_csv(SPANISH_CLUBS_FILE_PATH)
         self._premier_league_team_keys = set(self._premier_league_teams[CLUBS_KEY_COLUMN_NAME])
         self._primiera_division_team_keys = set(self._primiera_division_teams[CLUBS_KEY_COLUMN_NAME])
-        self._tagger = StanfordNERTagger(
-            "pretrained_models/stanford-ner-2014-08-27/classifiers/english.all.3class.distsim.crf.ser.gz",
-            "pretrained_models/stanford-ner-2014-08-27/stanford-ner-3.4.1.jar",
-        )
+        self._tagger = StanfordNERTagger(paths_config.standford_model_class, paths_config.standford_model_jar)
         self._season = season
         self._league = league
         self._teams_occurrences = {}
@@ -60,63 +59,76 @@ class FactsExtractor:
         self.team_1, self.team_2 = self._get_teams_which_played()
         self._add_all_person_occurrences()
 
-    def show_basic_facts(self):
+    def print_basic_facts(
+            self,
+            n_most_often_mentioned_persons: int,
+            n_most_popular_hashtags: int,
+            n_most_popular_emoticons: int
+    ):
         self._print_teams_that_have_played()
         self._print_result()
-        self._print_10_most_often_mentioned_persons()
-        self._print_10_most_popular_hashtags()
-        self._print_10_most_popular_emoticons()
+        self._print_n_most_often_mentioned_persons(n_most_often_mentioned_persons)
+        self._print_n_most_popular_hashtags(n_most_popular_hashtags)
+        self._print_n_most_popular_emoticons(n_most_popular_emoticons)
 
-    def _add_all_simple_facts_related_occurrences(self, n_latest_tweets_used_for_result_collection):
-        range_of_tweets_for_result_collection = range(
-            len(self._corpus_without_emoticons) - n_latest_tweets_used_for_result_collection
-            if n_latest_tweets_used_for_result_collection else 0,
+    def _add_all_simple_facts_related_occurrences(self, latest_tweets_count):
+        tweets_to_process_range = range(
+            len(self._corpus_without_emoticons) - latest_tweets_count if latest_tweets_count else 0,
             len(self._corpus_without_emoticons)
         )
-        for tweet_index, tweet in enumerate(self._corpus_without_emoticons):
-            previous_token_value = None
-            if tweet_index in range_of_tweets_for_result_collection:
+        for tweet_idx, tweet in enumerate(self._corpus_without_emoticons):
+            if tweet_idx in tweets_to_process_range:
                 self._add_potential_match_result_occurrence(tweet)
-            for token_index, token in enumerate(tweet):
-                token = token.lower()
-                self._add_potential_team_occurrence(previous_token_value, token)
-                self._add_potential_hashtag_occurrence(token)
-                previous_token_value = token
+            self._process_tweet_tokens(tweet)
+
+        self._process_emoticons()
+
+    def _process_tweet_tokens(self, tweet):
+        previous_token = None
+        for token in tweet:
+            token = token.lower()
+            self._add_potential_team_occurrence(previous_token, token)
+            self._add_potential_hashtag_occurrence(token)
+            previous_token = token
+
+    def _process_emoticons(self):
         for tweet in self._corpus_with_emoticons:
             for character in tweet:
                 self._add_potential_emoticon_occurrence(character)
 
     def _add_all_person_occurrences(self):
         tweets_with_tags = self._tagger.tag_sents(self._corpus_without_emoticons)
-        tweets_including_persons_tags = self._remove_tweets_without_persons_tags(
+        person_tagged_tweets = self._remove_tweets_without_persons_tags(
             tweets_with_tags=tweets_with_tags
         )
         self._persons_occurrences = {}
         teams_squads = self._get_teams_squads()
-        for tweet in tweets_including_persons_tags:
-            previous_token_value = None
-            previous_token_tag = None
-            for token_index, token in enumerate(tweet):
-                token_value, token_tag = token
-                if token_tag == self.PERSON_TAG:
-                    person_found = teams_squads.find_person_in_squads(
-                        last_name=token_value
+
+        for tweet in person_tagged_tweets:
+            self._process_tweet_for_persons(tweet, teams_squads)
+
+    def _process_tweet_for_persons(self, tweet, teams_squads):
+        previous_token = {"value": None, "tag": None}
+
+        for token in tweet:
+            token_value, token_tag = token
+            if token_tag == self.PERSON_TAG:
+                person_found = self._find_person_in_squads(
+                    teams_squads, token_value, previous_token
+                )
+                if person_found:
+                    self._persons_occurrences[person_found] = (
+                            self._persons_occurrences.get(person_found, 0) + 1
                     )
-                    if not person_found and previous_token_tag == self.PERSON_TAG:
-                        consecutive_person_tagged_tokens = (
-                            f"{previous_token_value} {token_value}"
-                        )
-                        person_found = teams_squads.find_person_in_squads(
-                            last_name=consecutive_person_tagged_tokens
-                        )
-                    if not person_found:
-                        continue
-                    if person_found in self._persons_occurrences:
-                        self._persons_occurrences[person_found] += 1
-                    else:
-                        self._persons_occurrences[person_found] = 1
-                previous_token_value = token_value
-                previous_token_tag = token_tag
+            previous_token["value"] = token_value
+            previous_token["tag"] = token_tag
+
+    def _find_person_in_squads(self, teams_squads, current_value, previous_token):
+        person = teams_squads.find_person_in_squads(last_name=current_value)
+        if not person and previous_token["tag"] == self.PERSON_TAG:
+            full_name = f"{previous_token['value']} {current_value}"
+            person = teams_squads.find_person_in_squads(last_name=full_name)
+        return person
 
     @new_line_appendix_decorator
     def _print_teams_that_have_played(self) -> None:
@@ -128,53 +140,50 @@ class FactsExtractor:
         print(self.QUESTION_RESULT, f"- {team_1} {score} {team_2}", sep="\n")
 
     @new_line_appendix_decorator
-    def _print_10_most_often_mentioned_persons(self) -> None:
-        top_10_most_often_mentioned_persons = self._get_top_n_counted_items_from_dict(
-            dict=self._persons_occurrences, n=30,
+    def _print_n_most_often_mentioned_persons(self, n: int) -> None:
+        top_most_often_mentioned_persons = self._get_top_n_counted_items_from_dict(
+            dict=self._persons_occurrences, n=n,
         )
-        top_10_persons = []
-        for person, person_count in top_10_most_often_mentioned_persons:
+        top_persons = []
+        for person, person_count in top_most_often_mentioned_persons:
             person_dict = {
                 **person.to_dict(),
                 "occurrence_count": person_count,
             }
-            top_10_persons.append(person_dict)
-        top_10_persons_df = pd.DataFrame(top_10_persons)
-        top_10_persons_df.to_csv("results/top_mentioned_people.csv")
-        print(self.QUESTION_MOST_OFTEN_MENTIONED_PERSONS, top_10_persons_df, sep="\n")
+            top_persons.append(person_dict)
+        top_persons_df = pd.DataFrame(top_persons)
+        print(self.QUESTION_MOST_OFTEN_MENTIONED_PERSONS, top_persons_df, sep="\n")
 
     @new_line_appendix_decorator
-    def _print_10_most_popular_hashtags(self) -> None:
-        top_10_most_popular_hashtags = self._get_top_n_counted_items_from_dict(
-            dict=self._hashtag_occurrences, n=10,
+    def _print_n_most_popular_hashtags(self, n: int) -> None:
+        top_n_most_popular_hashtags = self._get_top_n_counted_items_from_dict(
+            dict=self._hashtag_occurrences, n=n,
         )
-        top_10_hashtags = []
-        for hashtag, hashtag_count in top_10_most_popular_hashtags:
+        top_n_hashtags = []
+        for hashtag, hashtag_count in top_n_most_popular_hashtags:
             hashtag_dict = {
                 "hashtag": hashtag,
                 "hashtag_count": hashtag_count,
             }
-            top_10_hashtags.append(hashtag_dict)
-        top_10_hashtags_df = pd.DataFrame(top_10_hashtags)
-        top_10_hashtags_df.to_csv("results/top_hashtags.csv")
-        print(self.QUESTION_MOST_POPULAR_HASHTAGS, top_10_hashtags_df, sep="\n")
+            top_n_hashtags.append(hashtag_dict)
+        top_n_hashtags_df = pd.DataFrame(top_n_hashtags)
+        print(self.QUESTION_MOST_POPULAR_HASHTAGS, top_n_hashtags_df, sep="\n")
 
     @new_line_appendix_decorator
-    def _print_10_most_popular_emoticons(self) -> None:
-        top_10_most_popular_emoticons = self._get_top_n_counted_items_from_dict(
-            dict=self._emoticons_occurrences, n=11,
+    def _print_n_most_popular_emoticons(self, n: int) -> None:
+        top_n_most_popular_emoticons = self._get_top_n_counted_items_from_dict(
+            dict=self._emoticons_occurrences, n=n,
         )
-        top_10_emoticons = []
-        for emoticon, emoticon_count in top_10_most_popular_emoticons:
+        top_n_emoticons = []
+        for emoticon, emoticon_count in top_n_most_popular_emoticons:
             hashtag_dict = {
                 "emoticon": emoticon,
                 "emoticon_description": demojize(emoticon.decode('unicode-escape')),
                 "emoticon_count": emoticon_count,
             }
-            top_10_emoticons.append(hashtag_dict)
-        top_10_emoticons_df = pd.DataFrame(top_10_emoticons)
-        top_10_emoticons_df.to_csv("results/top_emoticons.csv")
-        print(self.QUESTION_MOST_POPULAR_EMOTICONS, top_10_emoticons_df , sep="\n")
+            top_n_emoticons.append(hashtag_dict)
+        top_n_emoticons_df = pd.DataFrame(top_n_emoticons)
+        print(self.QUESTION_MOST_POPULAR_EMOTICONS, top_n_emoticons_df , sep="\n")
 
     def _get_teams_which_played(self) -> Tuple[str, str]:
         teams = list(sorted(self._teams_occurrences, key=self._teams_occurrences.get,))
@@ -244,25 +253,17 @@ class FactsExtractor:
             self._add_team_occurrence(team_key=f"{first_token}{second_token}")
 
     def _add_team_occurrence(self, team_key: str):
-        if self._teams_occurrences.get(team_key):
-            self._teams_occurrences[team_key] += 1
-        else:
-            self._teams_occurrences[team_key] = 1
+        self._teams_occurrences[team_key] = self._teams_occurrences.get(team_key, 0) + 1
 
     def _add_potential_hashtag_occurrence(self, token: str):
         if token[0] == "#":
-            if self._hashtag_occurrences.get(token):
-                self._hashtag_occurrences[token] += 1
-            else:
-                self._hashtag_occurrences[token] = 1
+            self._hashtag_occurrences[token] = self._hashtag_occurrences.get(token, 0) + 1
 
     def _add_potential_emoticon_occurrence(self, character: str):
         if character in UNICODE_EMOJI:
-            # print(f"|{character}|", len(character), character.encode('unicode-escape'))
-            if self._emoticons_occurrences.get(character.encode('unicode-escape')):
-                self._emoticons_occurrences[character.encode('unicode-escape')] += 1
-            else:
-                self._emoticons_occurrences[character.encode('unicode-escape')] = 1
+            self._emoticons_occurrences[character.encode('unicode-escape')] = (
+                self._emoticons_occurrences.get(character.encode('unicode-escape'), 0) + 1
+            )
 
     def _get_club_name_from_club_key(self, key):
         if key in self._premier_league_team_keys:
@@ -292,21 +293,28 @@ class FactsExtractor:
         return [CustomTokenizer.tokenize(tweet) for tweet in corpus]
 
 
-@section_printing_decorator
-def show_basic_facts(
+@section_printing_decorator("BASIC_FACTS")
+def print_basic_facts(
     corpus_without_emoticons,
     corpus_with_emoticons,
     season: Season,
     league: League,
+    paths_config: PathsConfig,
     n_latest_tweets_used_for_result_collection: int = None,
+    n_most_often_mentioned_persons: int = 30,
+    n_most_popular_hashtags: int = 10,
+    n_most_popular_emoticons: int = 10,
 ):
-    print("BASIC FACTS")
-    print()
     facts_extractor = FactsExtractor(
         corpus_without_emoticons=corpus_without_emoticons,
         corpus_with_emoticons=corpus_with_emoticons,
         n_latest_tweets_used_for_result_collection=n_latest_tweets_used_for_result_collection,
         season=season,
         league=league,
+        paths_config=paths_config
     )
-    facts_extractor.show_basic_facts()
+    facts_extractor.print_basic_facts(
+        n_most_often_mentioned_persons=n_most_often_mentioned_persons,
+        n_most_popular_hashtags=n_most_popular_hashtags,
+        n_most_popular_emoticons=n_most_popular_emoticons
+    )

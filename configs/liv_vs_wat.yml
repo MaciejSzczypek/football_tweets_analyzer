@@ -1,83 +1,105 @@
-analysis_without_emoticons:
-  corpus:
-    normalization:
-      operations:
-        lower: true
-        remove_commas: false
-        remove_stopwords: true
-        apply_stemming: false
-        apply_lemmatization: true
-        expand_contractions: true
-        remove_special_characters: true
-        remove_emoticons: true
-        remove_hashtags: true
-        remove_links: true
-        remove_user_mentions: true
-      custom_data:
-        stopwords: null
-    tokenization:
-      sentence_tokenizer: default_sentence_tokenizer
-      word_tokenizer: custom_tokenizer
+data_transformations:
+  analysis_without_emoticons:
+    corpus:
+      normalization:
+        operations:
+          lower: true
+          remove_commas: false
+          remove_stopwords: true
+          apply_stemming: false
+          apply_lemmatization: true
+          expand_contractions: true
+          remove_special_characters: true
+          remove_emoticons: true
+          remove_hashtags: true
+          remove_links: true
+          remove_user_mentions: true
+        custom_data:
+          stopwords: null
+      tokenization:
+        sentence_tokenizer: default_sentence_tokenizer
+        word_tokenizer: custom_tokenizer
 
-analysis_with_emoticons:
-  corpus:
-    normalization:
-      operations:
-        lower: true
-        remove_commas: false
-        remove_stopwords: true
-        apply_stemming: false
-        apply_lemmatization: true
-        expand_contractions: true
-        remove_special_characters: true
-        remove_emoticons: false
-        remove_hashtags: true
-        remove_links: true
-        remove_user_mentions: true
-      custom_data:
-        stopwords: null
-    tokenization:
-      sentence_tokenizer: default_sentence_tokenizer
-      word_tokenizer: custom_tokenizer
+  analysis_with_emoticons:
+    corpus:
+      normalization:
+        operations:
+          lower: true
+          remove_commas: false
+          remove_stopwords: true
+          apply_stemming: false
+          apply_lemmatization: true
+          expand_contractions: true
+          remove_special_characters: true
+          remove_emoticons: false
+          remove_hashtags: true
+          remove_links: true
+          remove_user_mentions: true
+        custom_data:
+          stopwords: null
+      tokenization:
+        sentence_tokenizer: default_sentence_tokenizer
+        word_tokenizer: custom_tokenizer
 
-setting_for_tweet_pre_cleaning:
-  corpus:
-    normalization:
-      operations:
-        lower: false
-        remove_commas: true
-        remove_stopwords: false
-        apply_stemming: false
-        apply_lemmatization: false
-        expand_contractions: false
-        remove_special_characters: false
-        remove_emoticons: false
-        remove_hashtags: false
-        remove_links: true
-        remove_user_mentions: true
-      custom_data:
-        stopwords: null
-    tokenization:
-      sentence_tokenizer: null
-      word_tokenizer: custom_tokenizer
+  setting_for_tweet_pre_cleaning:
+    corpus:
+      normalization:
+        operations:
+          lower: false
+          remove_commas: true
+          remove_stopwords: false
+          apply_stemming: false
+          apply_lemmatization: false
+          expand_contractions: false
+          remove_special_characters: false
+          remove_emoticons: false
+          remove_hashtags: false
+          remove_links: true
+          remove_user_mentions: true
+        custom_data:
+          stopwords: null
+      tokenization:
+        sentence_tokenizer: null
+        word_tokenizer: custom_tokenizer
 
-setting_for_sentiment_analysis:
-  corpus:
-    normalization:
-      operations:
-        lower: true
-        remove_commas: false
-        remove_stopwords: false
-        apply_stemming: false
-        apply_lemmatization: false
-        expand_contractions: false
-        remove_special_characters: false
-        remove_emoticons: false
-        remove_hashtags: false
-        remove_links: false
-        remove_user_mentions: false
-      custom_data:
-        stopwords: null
-    tokenization:
-      sentence_tokenizer: null
-      word_tokenizer: custom_tokenizer
+  setting_for_sentiment_analysis:
+    corpus:
+      normalization:
+        operations:
+          lower: true
+          remove_commas: false
+          remove_stopwords: false
+          apply_stemming: false
+          apply_lemmatization: false
+          expand_contractions: false
+          remove_special_characters: false
+          remove_emoticons: false
+          remove_hashtags: false
+          remove_links: false
+          remove_user_mentions: false
+        custom_data:
+          stopwords: null
+      tokenization:
+        sentence_tokenizer: null
+        word_tokenizer: custom_tokenizer
+paths:
+  results_dir: /tmp/results
+  wordcloud_mask: ../data/masks/footballer_mask.jpg
+  standford_model_jar: /Users/maciej/Downloads/stanford-ner-2020-11-17/stanford-ner-4.2.0.jar
+  standford_model_class: /Users/maciej/Downloads/stanford-ner-2020-11-17/classifiers/english.all.3class.distsim.crf.ser.gz
+
+sections:
+  top_n_grams:
+    enabled: false
+  wordcloud:
+    enabled: true
+  basic_facts:
+    enabled: false
+  topic_modeling:
+    enabled: false
+  sentiment_analysis:
+    enabled: false
+  summarization:
+    enabled: false
+  time_frames:
+    enabled: false
