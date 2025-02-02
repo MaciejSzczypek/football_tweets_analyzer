@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import NMF
 from typing import List
+
+from configs.config_schema import PathsConfig
 from data.column_names import CREATED_AT_COLUMN_NAME
 from data.utils import DataSet
 from information_extraction.keyphrase_extraction import KeyPhraseExtractor
@@ -15,22 +17,21 @@ ALPHA = 0.02
 L1_RATIO = 0.6
 MINIMAL_SIMILARITY_THRESHOLD = 0.015
 TOP_TWEETS_LIMIT = 15
+pd.set_option("display.max_colwidth", None)
 
 
 @section_printing_decorator("TOPIC MODELING")
 def show_topics_modeled_with_nmf(
-    key_phrase_extractor: KeyPhraseExtractor, dataset: DataSet, num_topics: int = 4
+    dataset: DataSet, paths_config: PathsConfig, num_topics: int = 4,
 ) -> pd.DataFrame:
-    pd.set_option("display.max_colwidth", None)
 
     # Step 1: NMF model initialization and fit
-    print(f"NMF: alpha: {ALPHA}, l1_ratio: {L1_RATIO}, max_iter: {MAX_ITER}")
     nmf = NMF(
-        n_components=num_topics, alpha=ALPHA, l1_ratio=L1_RATIO
+        n_components=num_topics, alpha=ALPHA, l1_ratio=L1_RATIO, max_iter=MAX_ITER
     ).fit(dataset.tfidf_for_aggregated_tweets)
 
-    tfidf_feature_names = dataset.tfidf_vectorizer.get_feature_names()
-    key_phrase_extractor.print_top_words_for_all_topics(nmf, tfidf_feature_names, TOP_TWEETS_LIMIT)
+    tfidf_feature_names = dataset.tfidf_vectorizer.get_feature_names_out()
+    KeyPhraseExtractor.print_top_words_for_all_topics(nmf, tfidf_feature_names, TOP_TWEETS_LIMIT)
 
     # Step 2: Assign topics to tweets
     tweets_with_topic_assignment = assign_topics_to_tweets(
@@ -41,25 +42,21 @@ def show_topics_modeled_with_nmf(
         nmf,
     )
 
-    # Print quick stats about topic assignments
-    print(
-        len(tweets_with_topic_assignment[tweets_with_topic_assignment["topic"].isin(range(num_topics))])
-    )
-
     # Step 3: Analyze and save top tweets per topic
     for topic_index in range(num_topics):
         print(f"\n=====TOP FOR TOPIC {topic_index}=====")
         topic_tweets = tweets_with_topic_assignment[tweets_with_topic_assignment["topic"] == topic_index]
-        print(topic_index, "====>", len(topic_tweets))
+        print(f'Tweet count for topic #{topic_index}: {len(topic_tweets)}')
         top_topic_tweets = topic_tweets.sort_values(by="topic_value", ascending=False)[:TOP_TWEETS_LIMIT]
-        top_topic_tweets.to_csv(os.path.join(key_phrase_extractor.result_dir, f"top_topic_{topic_index}.csv"))
-        print(top_topic_tweets)
+        top_topic_tweets.to_csv(os.path.join(paths_config.results_dir, f"top_topic_{topic_index}.csv"))
+        print("Top tweets associated with topic:")
+        print(top_topic_tweets["tweet"])
 
     # Step 4: Handle unassigned tweets
     unassigned_tweets = tweets_with_topic_assignment[tweets_with_topic_assignment["topic"].isnull()]
     df_unassigned_sample = unassigned_tweets[:20]
-    print(df_unassigned_sample)
-    df_unassigned_sample.to_csv(os.path.join(key_phrase_extractor.result_dir, "unassigned_topics_examples.csv"))
+    print(f"Tweet count not associated with any topic: {len(df_unassigned_sample)}")
+    df_unassigned_sample.to_csv(os.path.join(paths_config.results_dir, "unassigned_topics_examples.csv"))
 
     return tweets_with_topic_assignment
 

@@ -13,7 +13,7 @@ from information_extraction.enums import Season, League
 from information_extraction.facts_extractor import print_basic_facts
 from information_extraction.keyphrase_extraction import show_top_ngrams
 from information_extraction.text_summarization import (
-    show_most_relevant_sentences, show_summaries_generated_with_transformers
+    print_most_relevant_sentences, generate_summary_with_transformer
 )
 from information_extraction.time_frames import show_time_frames_analysis
 from information_extraction.topic_modelling import show_topics_modeled_with_nmf
@@ -66,13 +66,13 @@ def run_analysis():
         league=League.CHAMPIONS_LEAGUE,
     )
     # summarization
-    show_most_relevant_sentences(
+    print_most_relevant_sentences(
         normalized_tweets_as_strings=dataset_without_emoticons.normalized_tweets_as_strings,
         df_before_transformation=dataset_without_emoticons.initial_df,
         sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
         random_batch_size=25_000,
     )
-    show_summaries_generated_with_transformers(dataset_without_emoticons.df_with_normalized_tweets)
+    generate_summary_with_transformer(dataset_without_emoticons.df_with_normalized_tweets)
     # topic modeling
     df_with_topic_labels = show_topics_modeled_with_nmf(
         dataset=dataset_without_emoticons,

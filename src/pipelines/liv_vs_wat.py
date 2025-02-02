@@ -8,7 +8,7 @@ from information_extraction.enums import Season, League
 from information_extraction.facts_extractor import print_basic_facts
 from information_extraction.keyphrase_extraction import KeyPhraseExtractor
 from information_extraction.text_summarization import (
-    show_most_relevant_sentences, show_summaries_generated_with_transformers
+    print_most_relevant_sentences
 )
 from utils.file import make_directory_if_not_exists
 from information_extraction.time_frames import show_time_frames_analysis
@@ -88,16 +88,17 @@ def run_liverpool_watford_analysis():
 
     # summarization
     if sections_config.is_summarization_enabled:
-        show_most_relevant_sentences(
+        print_most_relevant_sentences(
             normalized_tweets_as_strings=dataset_without_emoticons.normalized_tweets_as_strings,
             df_before_transformation=dataset_without_emoticons.initial_df,
             sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
         )
-        show_summaries_generated_with_transformers(dataset_without_emoticons.df_with_normalized_tweets)
 
     # topic modeling
     if sections_config.is_topic_modeling_enabled:
-        df_with_topic_labels = show_topics_modeled_with_nmf(dataset=dataset_without_emoticons)
+        df_with_topic_labels = show_topics_modeled_with_nmf(
+            paths_config=paths_config, dataset=dataset_without_emoticons
+        )
 
     # sentiment analysis
     if sections_config.is_sentiment_analysis_enabled:

@@ -15,7 +15,7 @@ from keras.models import Sequential
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
-from nltk import NaiveBayesClassifier, SklearnClassifier, MaxentClassifier, classify
+from nltk import SklearnClassifier, MaxentClassifier, classify
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 
@@ -271,13 +271,6 @@ def test_different_models_for_dataset(
 ):
     logger.disabled = True
 
-    naive_bayes_test_results = _train_and_test_with_nltk_model(
-        classifier=NaiveBayesClassifier,
-        train_dataset=tl_dataset.train_data_nltk,
-        test_dataset=tl_dataset.test_data_nltk,
-        main_test_dataset=main_test_dataset,
-        convert_emojis_to_text=convert_emojis_to_text,
-    )
     random_forrest_test_results = _train_and_test_with_nltk_model(
         classifier=SklearnClassifier(
             estimator=RandomForestClassifier(n_estimators=5)
@@ -340,7 +333,6 @@ def test_different_models_for_dataset(
     )
     df = pd.DataFrame.from_dict(
         {
-            "naive_bayes": naive_bayes_test_results.accuracies,
             "random_forrest": random_forrest_test_results.accuracies,
             "logistic_regression": logistic_regression_test_results.accuracies,
             "bagging": bagging_test_results.accuracies,

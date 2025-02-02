@@ -46,33 +46,33 @@ TRANSFER_LEARNING_DATASETS_INFO = [
         text_column_name="original_text",
         label_column_name="sentiment_class",
     ),
-    # TransferLearningDataSetInfo(
-    #     path="learning_datasets/ivankunchev_tweet-sentiment-extraction-ml/train_ml.csv",
-    #     text_column_name="text",
-    #     label_column_name="sentiment",
-    #     sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    # ),
-    # TransferLearningDataSetInfo(
-    #     path="learning_datasets/louise2001_extended-train-for-tweet/extended_train.csv",
-    #     text_column_name="text",
-    #     label_column_name="sentiment",
-    #     sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    # ),
-    # TransferLearningDataSetInfo(
-    #     path="learning_datasets/maxjon_complete-tweet-sentiment-extraction-data/tweet_dataset.csv",
-    #     text_column_name="text",
-    #     label_column_name="new_sentiment",
-    #     sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    # ),
-    # TransferLearningDataSetInfo(
-    #     path="learning_datasets/seshurajup_tweet-sentiment-extraction-old/dataset_2.csv",
-    #     text_column_name="text",
-    #     label_column_name="sentiment",
-    #     sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
-    # ),
-    # TransferLearningDataSetInfo(
-    #     path="learning_datasets/vivekrathi055_sentiment-analysis-on-financial-tweets/tweet_sentiment.csv",
-    #     text_column_name="cleaned_tweets",
-    #     label_column_name="sentiment",
-    # ),
+    TransferLearningDataSetInfo(
+        path=os.path.join(BASE_PATH, "dataset_5.csv"),
+        text_column_name="text",
+        label_column_name="sentiment",
+        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
+    ),
+    TransferLearningDataSetInfo(
+        path=os.path.join(BASE_PATH, "dataset_6.csv"),
+        text_column_name="text",
+        label_column_name="sentiment",
+        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
+    ),
+    TransferLearningDataSetInfo(
+        path=os.path.join(BASE_PATH, "dataset_7.csv"),
+        text_column_name="text",
+        label_column_name="new_sentiment",
+        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
+    ),
+    TransferLearningDataSetInfo(
+        path=os.path.join(BASE_PATH, "dataset_8.csv"),
+        text_column_name="text",
+        label_column_name="sentiment",
+        sentiment_label_conversion_map={"positive": 1, "neutral": 0, "negative": -1},
+    ),
+    TransferLearningDataSetInfo(
+        path=os.path.join(BASE_PATH, "dataset_9.csv"),
+        text_column_name="cleaned_tweets",
+        label_column_name="sentiment",
+    ),
 ]

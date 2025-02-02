@@ -92,14 +92,14 @@ sections:
   top_n_grams:
     enabled: false
   wordcloud:
-    enabled: true
+    enabled: false
   basic_facts:
+    enabled: false
+  summarization:
     enabled: false
   topic_modeling:
     enabled: false
   sentiment_analysis:
-    enabled: false
-  summarization:
-    enabled: false
+    enabled: true
   time_frames:
     enabled: false

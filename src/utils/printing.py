@@ -1,7 +1,7 @@
 from typing import Callable
 
 
-def section_printing_decorator(section_name: str ):
+def section_printing_decorator(section_name: str):
     def _inner(section: Callable):
         def _wrapper(*args, **kwargs):
             print("=" * 50, f"Section: {section_name}", "=" * 50)
