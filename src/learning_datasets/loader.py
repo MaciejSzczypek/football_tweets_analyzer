@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 from configs.config_loader import ConfigLoader
 from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME
-from data.utils import DataSet
+from data.dataset_manager import DataSet
 from learning_datasets.index import TransferLearningDataSet, TRANSFER_LEARNING_DATASET_INFO
 
 

@@ -3,7 +3,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from configs.config_loader import ConfigLoader
 from corpus.cleaning.duplicated_tweets_remover import DuplicatedTweetsRemover
 from data.loaders import DataLoader
-from data.utils import DataSet
+from data.dataset_manager import DataSet
 from information_extraction.enums import Season, League
 from information_extraction.facts_extractor import print_basic_facts
 from information_extraction.keyphrase_extraction import KeyPhraseExtractor

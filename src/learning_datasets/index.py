@@ -1,6 +1,6 @@
 from typing import Optional, Dict, List
 from dataclasses import dataclass
-from data.utils import DataSet
+from data.dataset_manager import DataSet
 import os
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))

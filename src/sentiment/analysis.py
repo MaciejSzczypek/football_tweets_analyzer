@@ -17,7 +17,7 @@ from keras.utils import to_categorical
 from transformers import pipeline
 
 from data.column_names import LABEL_COLUMN_NAME
-from data.utils import DataSet
+from data.dataset_manager import DataSet
 from learning_datasets.loader import DatasetLoader
 from sentiment.labeler import Labeler
 from utils.printing import section_printing_decorator
