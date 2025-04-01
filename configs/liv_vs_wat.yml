@@ -85,8 +85,8 @@ data_transformations:
 paths:
   results_dir: /tmp/results
   wordcloud_mask: ../data/masks/footballer_mask.jpg
-  standford_model_jar: /Users/maciej/Downloads/stanford-ner-2020-11-17/stanford-ner-4.2.0.jar
-  standford_model_class: /Users/maciej/Downloads/stanford-ner-2020-11-17/classifiers/english.all.3class.distsim.crf.ser.gz
+  standford_model_jar: ~/Downloads/stanford-ner-2020-11-17/stanford-ner-4.2.0.jar
+  standford_model_class: ~/Downloads/stanford-ner-2020-11-17/classifiers/english.all.3class.distsim.crf.ser.gz
 
 sections:
   top_n_grams:

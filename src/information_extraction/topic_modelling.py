@@ -7,7 +7,7 @@ from typing import List
 
 from configs.config_schema import PathsConfig
 from data.column_names import CREATED_AT_COLUMN_NAME
-from data.utils import DataSet
+from data.dataset_manager import DataSet
 from information_extraction.keyphrase_extraction import KeyPhraseExtractor
 from utils.printing import section_printing_decorator
 
