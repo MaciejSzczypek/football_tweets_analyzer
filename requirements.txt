@@ -5,7 +5,7 @@ emoji==0.5.4
 gensim==3.8.3
 langdetect==1.0.8
 matplotlib==3.6.1
-networkx
+networkx~=3.2.1
 nltk==3.5
 nptyping==1.0.1
 numpy==1.23.5
@@ -22,3 +22,7 @@ textblob==0.15.3
 tensorflow==2.13.0
 vaderSentiment==3.3.2
 wordcloud==1.9.2
+
+scikit-learn~=1.0.2
+keras~=2.13.1
+transformers~=4.47.0

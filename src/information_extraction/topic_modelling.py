@@ -25,7 +25,6 @@ def show_topics_modeled_with_nmf(
     dataset: DataSet, paths_config: PathsConfig, num_topics: int = 4,
 ) -> pd.DataFrame:
 
-    # Step 1: NMF model initialization and fit
     nmf = NMF(
         n_components=num_topics, alpha=ALPHA, l1_ratio=L1_RATIO, max_iter=MAX_ITER
     ).fit(dataset.tfidf_for_aggregated_tweets)
@@ -33,7 +32,6 @@ def show_topics_modeled_with_nmf(
     tfidf_feature_names = dataset.tfidf_vectorizer.get_feature_names_out()
     KeyPhraseExtractor.print_top_words_for_all_topics(nmf, tfidf_feature_names, TOP_TWEETS_LIMIT)
 
-    # Step 2: Assign topics to tweets
     tweets_with_topic_assignment = assign_topics_to_tweets(
         dataset.tfidf,
         dataset.initial_tweets_array,
@@ -42,7 +40,6 @@ def show_topics_modeled_with_nmf(
         nmf,
     )
 
-    # Step 3: Analyze and save top tweets per topic
     for topic_index in range(num_topics):
         print(f"\n=====TOP FOR TOPIC {topic_index}=====")
         topic_tweets = tweets_with_topic_assignment[tweets_with_topic_assignment["topic"] == topic_index]
@@ -52,7 +49,6 @@ def show_topics_modeled_with_nmf(
         print("Top tweets associated with topic:")
         print(top_topic_tweets["tweet"])
 
-    # Step 4: Handle unassigned tweets
     unassigned_tweets = tweets_with_topic_assignment[tweets_with_topic_assignment["topic"].isnull()]
     df_unassigned_sample = unassigned_tweets[:20]
     print(f"Tweet count not associated with any topic: {len(df_unassigned_sample)}")

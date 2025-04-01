@@ -20,17 +20,17 @@ class DataSet:
     tfidf_vectorizer: TfidfVectorizer
     original_df: Optional[pd.DataFrame]
 
-    # todo transform to lazy properties
-    @property
-    def normalized_tweets_as_strings(self) -> List[str]:
-        return [" ".join(tweet) for tweet in self.normalized_tweets_as_token_lists]
-
     @property
     def normalized_tweets_as_demojized_strings(self) -> List[str]:
         return [
             " ".join(self._convert_tokens_with_emojis_to_text(tweet))
             for tweet in self.normalized_tweets_as_token_lists
         ]
+    # todo transform to lazy properties
+
+    @property
+    def normalized_tweets_as_strings(self) -> List[str]:
+        return [" ".join(tweet) for tweet in self.normalized_tweets_as_token_lists]
 
     @property
     def initial_df_with_emojis_converted_to_text(self) -> pd.DataFrame:

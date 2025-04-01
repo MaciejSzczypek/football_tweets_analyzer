@@ -14,7 +14,7 @@ from utils.file import make_directory_if_not_exists
 from information_extraction.time_frames import show_time_frames_analysis
 from information_extraction.topic_modelling import show_topics_modeled_with_nmf
 from information_extraction.wordcloud import generate_word_cloud
-from sentiment.analysis import show_sentiment_analysis_accuracies_results
+from sentiment.analysis import SentimentAnalyzer
 from data.paths import (
     DataFilePaths,
     LIVERPOOL_VS_WATFORD_CONFIGURATION_FILE_NAME,
@@ -99,19 +99,23 @@ def run_liverpool_watford_analysis():
         df_with_topic_labels = show_topics_modeled_with_nmf(
             paths_config=paths_config, dataset=dataset_without_emoticons
         )
+    else:
+        df_with_topic_labels = None
 
     # sentiment analysis
     if sections_config.is_sentiment_analysis_enabled:
-        show_sentiment_analysis_accuracies_results(
-            dataset=labeled_dataset_for_sentiment_analysis_tests,
-            config_file_path=liverpool_watford_file_paths.configuration_path,
-            paths_config=paths_config
+        analyzer = SentimentAnalyzer(
+            labeled_dataset_for_sentiment_analysis_tests, liverpool_watford_file_paths.configuration_path
         )
+        analyzer.show_sentiment_labeling_accuracy()
+        df_with_sentiment_labels = analyzer.tag_dataset_with_sentiment(dataset_with_emoticons)
+    else:
+        df_with_sentiment_labels = None
 
     # time frame analysis
     if sections_config.is_time_frames_enabled:
         show_time_frames_analysis(
-            df_sentiment=dataset_with_emoticons.initial_df_with_emojis_converted_to_text,
+            df_sentiment=df_with_sentiment_labels,
             df_topic=df_with_topic_labels,
             paths_config=paths_config
         )

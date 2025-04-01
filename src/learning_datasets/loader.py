@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from configs.config_loader import ConfigLoader
 from data.column_names import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME
 from data.utils import DataSet
-from learning_datasets.index import TransferLearningDataSet, TRANSFER_LEARNING_DATASETS_INFO
+from learning_datasets.index import TransferLearningDataSet, TRANSFER_LEARNING_DATASET_INFO
 
 
 class DatasetLoader:
@@ -21,6 +21,7 @@ class DatasetLoader:
         config_file_path: str,
     ) -> Tuple[DataSet, DataSet]:
         configs = ConfigLoader.load(config_file_path)
+        print(file_path)
         df = pd.read_csv(file_path)
         df = df.rename(
             columns={
@@ -88,34 +89,32 @@ class DatasetLoader:
         return x_train, x_test, x_main, y_train, y_test
 
     @classmethod
-    def load_learning_datasets(cls, config_file_path: str, dataset: DataSet, convert_emojis_to_text):
+    def load_transfer_learning_dataset(cls, config_file_path: str, dataset: DataSet, convert_emojis_to_text):
         datasets = []
-        for index, tl_dataset_info in enumerate(TRANSFER_LEARNING_DATASETS_INFO):
-            print(f"*****{tl_dataset_info.path}*****")
-            train_dataset, test_dataset = cls._load_datasets(
-                file_path=tl_dataset_info.path,
-                text_column_name=tl_dataset_info.text_column_name,
-                label_column_name=tl_dataset_info.label_column_name,
-                sentiment_label_conversion_map=tl_dataset_info.sentiment_label_conversion_map,
-                config_file_path=config_file_path,
-            )
-            x_train, x_test, x_main, y_train, y_test = cls._load_tfidf_datasets(
-                file_path=tl_dataset_info.path,
-                text_column_name=tl_dataset_info.text_column_name,
-                label_column_name=tl_dataset_info.label_column_name,
-                main_test_dataset=dataset,
-                sentiment_label_conversion_map=tl_dataset_info.sentiment_label_conversion_map,
-                convert_emojis_to_text=convert_emojis_to_text,
-                config_file_path=config_file_path,
-            )
-            tl_dataset = TransferLearningDataSet(
-                train_data_nltk=train_dataset,
-                test_data_nltk=test_dataset,
-                train_data_tfidf=x_train,
-                train_data_tfidf_labels=y_train,
-                test_data_tfidf=x_test,
-                test_data_tfidf_labels=y_test,
-                main_test_data_tfidf=x_main,
-            )
-            datasets.append(tl_dataset)
+        train_dataset, test_dataset = cls._load_datasets(
+            file_path=TRANSFER_LEARNING_DATASET_INFO.path,
+            text_column_name=TRANSFER_LEARNING_DATASET_INFO.text_column_name,
+            label_column_name=TRANSFER_LEARNING_DATASET_INFO.label_column_name,
+            sentiment_label_conversion_map=TRANSFER_LEARNING_DATASET_INFO.sentiment_label_conversion_map,
+            config_file_path=config_file_path,
+        )
+        x_train, x_test, x_main, y_train, y_test = cls._load_tfidf_datasets(
+            file_path=TRANSFER_LEARNING_DATASET_INFO.path,
+            text_column_name=TRANSFER_LEARNING_DATASET_INFO.text_column_name,
+            label_column_name=TRANSFER_LEARNING_DATASET_INFO.label_column_name,
+            main_test_dataset=dataset,
+            sentiment_label_conversion_map=TRANSFER_LEARNING_DATASET_INFO.sentiment_label_conversion_map,
+            convert_emojis_to_text=convert_emojis_to_text,
+            config_file_path=config_file_path,
+        )
+        tl_dataset = TransferLearningDataSet(
+            train_data_nltk=train_dataset,
+            test_data_nltk=test_dataset,
+            train_data_tfidf=x_train,
+            train_data_tfidf_labels=y_train,
+            test_data_tfidf=x_test,
+            test_data_tfidf_labels=y_test,
+            main_test_data_tfidf=x_main,
+        )
+        datasets.append(tl_dataset)
         return datasets

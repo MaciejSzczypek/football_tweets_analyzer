@@ -1,6 +1,7 @@
 from corpus.cleaning.constants import FOOTBALL_RESULT_FORMAT_REGEX
 import re
 
+# todo create abstract class for this and corpus tokenizer
 
 class CustomTokenizer:
     @classmethod

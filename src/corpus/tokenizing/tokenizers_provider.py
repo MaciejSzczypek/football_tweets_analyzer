@@ -39,9 +39,4 @@ class TokenizersProvider:
         if name in cls.TOKENIZERS:
             return cls.TOKENIZERS.get(name)
         else:
-            # logging.warning(
-            #     cls.NO_SUCH_KEY_IN_TOKENIZERS_DICTIONARY_INFO_TEMPLATE.substitute(
-            #         name=name
-            #     )
-            # )
             return cls.TOKENIZERS.get(default_tokenizer_name)

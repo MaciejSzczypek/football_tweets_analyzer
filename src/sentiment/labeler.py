@@ -13,7 +13,6 @@ class Labeler:
     LABEL_COLUMN_NAME = "label"
     POLARITY_COLUMN_NAME = "polarity"
 
-    # todo create enum for all classifiers
     @classmethod
     def get_data_sentiment_with_vader(
             cls, df: pd.DataFrame, polarity_absolute_threshold: float = 0.08

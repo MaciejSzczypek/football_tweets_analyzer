@@ -3,92 +3,124 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from configs.config_loader import ConfigLoader
 from corpus.cleaning.duplicated_tweets_remover import DuplicatedTweetsRemover
 from data.loaders import DataLoader
+from data.utils import DataSet
+from information_extraction.enums import Season, League
+from information_extraction.facts_extractor import print_basic_facts
+from information_extraction.keyphrase_extraction import KeyPhraseExtractor
+from information_extraction.text_summarization import (
+    print_most_relevant_sentences
+)
+from utils.file import make_directory_if_not_exists
+from information_extraction.time_frames import show_time_frames_analysis
+from information_extraction.topic_modelling import show_topics_modeled_with_nmf
+from information_extraction.wordcloud import generate_word_cloud
+from sentiment.analysis import SentimentAnalyzer
 from data.paths import (
     REAL_VS_LIVERPOOL_CONFIGURATION_FILE_NAME,
     DataFilePaths,
     REAL_VS_LIVERPOOL_FILE_NAME_CORE,
 )
-from data.utils import DataSet
-from information_extraction.enums import Season, League
-from information_extraction.facts_extractor import print_basic_facts
-from information_extraction.keyphrase_extraction import show_top_ngrams
-from information_extraction.text_summarization import (
-    print_most_relevant_sentences, generate_summary_with_transformer
-)
-from information_extraction.time_frames import show_time_frames_analysis
-from information_extraction.topic_modelling import show_topics_modeled_with_nmf
-from information_extraction.wordcloud import generate_word_cloud
-from sentiment.analysis import show_sentiment_analysis_accuracies_results
 
 
-def run_analysis():
+def _prepare_datasets(file_paths, config):
     # data loading
-    real_liverpool_file_paths = DataFilePaths(
-        configuration_name=REAL_VS_LIVERPOOL_CONFIGURATION_FILE_NAME,
-        core_name=REAL_VS_LIVERPOOL_FILE_NAME_CORE,
-    )
-    configs = ConfigLoader.load(real_liverpool_file_paths.configuration_path)
+    make_directory_if_not_exists(config.paths.results_dir)
     initial_df_with_tweet_specific_noise_removed = DataLoader.from_csv(
-        real_liverpool_file_paths.tweet_specific_noise_removed, line_terminator="\n"
+        file_paths.tweet_specific_noise_removed
     )
-    original_df = DataLoader.from_csv(real_liverpool_file_paths.original_path, line_terminator="\n")
-
+    original_df = DataLoader.from_csv(file_paths.original_path, line_terminator='\n')
+    labeled_df_for_sentiment_analysis_tests = DataLoader.from_csv(
+        file_paths.random_batch_fully_tagged
+    )
     # data preparation
     df = DuplicatedTweetsRemover.remove_duplicated_tweets(
         initial_df_with_tweet_specific_noise_removed
     )
     dataset_without_emoticons = DataSet.create(
         df=df.copy(),
-        hyper_parameters_config=configs.settings["analysis_without_emoticons"],
+        hyper_parameters_config=config.settings["analysis_without_emoticons"],
         original_df=original_df,
     )
     dataset_with_emoticons = DataSet.create(
         df=df.copy(),
-        hyper_parameters_config=configs.settings["analysis_with_emoticons"],
+        hyper_parameters_config=config.settings["analysis_with_emoticons"],
     )
-    labeled_df_for_sentiment_analysis_tests = DataLoader.from_csv(real_liverpool_file_paths.random_batch_fully_tagged)
     labeled_dataset_for_sentiment_analysis_tests = DataSet.create(
         df=labeled_df_for_sentiment_analysis_tests,
-        hyper_parameters_config=configs.settings["setting_for_sentiment_analysis"],
+        hyper_parameters_config=config.settings["setting_for_sentiment_analysis"],
         tfidf_vectorizer=TfidfVectorizer(token_pattern=r"\S+", stop_words="english")
+    )
+    return dataset_without_emoticons, dataset_with_emoticons, labeled_dataset_for_sentiment_analysis_tests
+
+
+def run_analysis():
+    # prepare data paths
+    real_liverpool_file_paths = DataFilePaths(
+        configuration_name=REAL_VS_LIVERPOOL_CONFIGURATION_FILE_NAME,
+        core_name=REAL_VS_LIVERPOOL_FILE_NAME_CORE,
+    )
+    # load configuration
+    configs = ConfigLoader.load(real_liverpool_file_paths.configuration_path)
+    paths_config, sections_config = configs.paths, configs.sections
+
+    # prepare data
+    dataset_without_emoticons, dataset_with_emoticons, labeled_dataset_for_sentiment_analysis_tests = (
+        _prepare_datasets(real_liverpool_file_paths, configs)
     )
 
     # top n-grams
-    show_top_ngrams(corpus=dataset_without_emoticons.normalized_tweets_as_token_lists)
-    generate_word_cloud(text=dataset_without_emoticons.flat_text, normalize_plurals=False)
+    if sections_config.is_top_n_grams_enabled:
+        KeyPhraseExtractor.print_top_ngrams(corpus=dataset_without_emoticons.normalized_tweets_as_token_lists)
+
+    # wordcloud
+    if sections_config.is_wordcloud_enabled:
+        generate_word_cloud(text=dataset_without_emoticons.flat_text, paths_config=paths_config)
 
     # facts extraction
-    print_basic_facts(
-        corpus_without_emoticons=dataset_without_emoticons.initial_tweets_array,
-        corpus_with_emoticons=dataset_with_emoticons.initial_tweets_array,
-        n_latest_tweets_used_for_result_collection=5000,
-        season=Season.SEASON_17_18,
-        league=League.CHAMPIONS_LEAGUE,
-    )
+    if sections_config.is_basic_facts_enabled:
+        print_basic_facts(
+            corpus_without_emoticons=dataset_without_emoticons.initial_tweets_array,
+            corpus_with_emoticons=dataset_with_emoticons.initial_tweets_array,
+            season=Season.SEASON_17_18,
+            league=League.CHAMPIONS_LEAGUE,
+            paths_config=paths_config,
+            n_latest_tweets_used_for_result_collection=5000,
+        )
+
     # summarization
-    print_most_relevant_sentences(
-        normalized_tweets_as_strings=dataset_without_emoticons.normalized_tweets_as_strings,
-        df_before_transformation=dataset_without_emoticons.initial_df,
-        sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
-        random_batch_size=25_000,
-    )
-    generate_summary_with_transformer(dataset_without_emoticons.df_with_normalized_tweets)
+    if sections_config.is_summarization_enabled:
+        print_most_relevant_sentences(
+            normalized_tweets_as_strings=dataset_without_emoticons.normalized_tweets_as_strings,
+            df_before_transformation=dataset_without_emoticons.initial_df,
+            sentences=dataset_without_emoticons.normalized_tweets_as_token_lists,
+            random_batch_size=25_000,
+        )
+
     # topic modeling
-    df_with_topic_labels = show_topics_modeled_with_nmf(
-        dataset=dataset_without_emoticons,
-        n_of_topics=7,
-    )
-    show_sentiment_analysis_accuracies_results(
-        dataset=labeled_dataset_for_sentiment_analysis_tests,
-        config_file_path=real_liverpool_file_paths.configuration_path,
-        accuracies_df_path_to_load="/home/maciej_szczypek/PJATK/master_thesis/python_project/data/auxiliary_files/accuracies_df_real_liv.csv",
-    )
+    if sections_config.is_topic_modeling_enabled:
+        df_with_topic_labels = show_topics_modeled_with_nmf(
+            paths_config=paths_config, dataset=dataset_without_emoticons
+        )
+    else:
+        df_with_topic_labels = None
+
+    # sentiment analysis
+    if sections_config.is_sentiment_analysis_enabled:
+        analyzer = SentimentAnalyzer(
+            labeled_dataset_for_sentiment_analysis_tests, real_liverpool_file_paths.configuration_path
+        )
+        analyzer.show_sentiment_labeling_accuracy()
+        df_with_sentiment_labels = analyzer.tag_dataset_with_sentiment(dataset_with_emoticons)
+    else:
+        df_with_sentiment_labels = None
+
     # time frame analysis
-    show_time_frames_analysis(
-        df_sentiment=dataset_with_emoticons.initial_df_with_emojis_converted_to_text,
-        df_topic=df_with_topic_labels,
-        time_frame_minutes_length=15
-    )
+    if sections_config.is_time_frames_enabled:
+        show_time_frames_analysis(
+            df_sentiment=df_with_sentiment_labels,
+            df_topic=df_with_topic_labels,
+            paths_config=paths_config
+        )
 
 
 if __name__ == "__main__":

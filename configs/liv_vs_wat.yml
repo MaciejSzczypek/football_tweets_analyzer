@@ -102,4 +102,4 @@ sections:
   sentiment_analysis:
     enabled: true
   time_frames:
-    enabled: false
+    enabled: true
